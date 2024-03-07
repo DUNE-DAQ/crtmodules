@@ -1,8 +1,15 @@
 // This is the configuration schema for crtmodules
 
 local moo = import "moo.jsonnet";
-local sdc = import "daqconf/confgen.jsonnet";
-local daqconf = moo.oschema.hier(sdc).dunedaq.daqconf.confgen;
+
+local stypes = import "daqconf/types.jsonnet";
+local types = moo.oschema.hier(stypes).dunedaq.daqconf.types;
+
+local sboot = import "daqconf/bootgen.jsonnet";
+local bootgen = moo.oschema.hier(sboot).dunedaq.daqconf.bootgen;
+
+//local sdc = import "daqconf/confgen.jsonnet";
+//local daqconf = moo.oschema.hier(sdc).dunedaq.daqconf.confgen;
 
 local ns = "dunedaq.crtmodules.confgen";
 local s = moo.oschema.schema(ns);
@@ -25,10 +32,10 @@ local cs = {
     ]),
 
     crtmodules_gen: s.record("crtmodules_gen", [
-        s.field("boot", daqconf.boot, default=daqconf.boot, doc="Boot parameters"),
+        s.field("boot", bootgen.boot, default=bootgen.boot, doc="Boot parameters"),
         s.field("crtmodules", self.crtmodules, default=self.crtmodules, doc="crtmodules parameters"),
     ]),
 };
 
 // Output a topologically sorted array.
-sdc + moo.oschema.sort_select(cs, ns)
+stypes + sboot + moo.oschema.sort_select(cs, ns)

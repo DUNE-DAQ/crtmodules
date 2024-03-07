@@ -14,6 +14,7 @@
 #include "crtmodules/crtcontrollermoduleinfo/InfoNljs.hpp"
 
 #include <string>
+#include <iostream>
 
 namespace dunedaq::crtmodules {
 
@@ -42,6 +43,8 @@ CRTControllerModule::do_conf(const data_t& conf_as_json)
 {
   auto conf_as_cpp = conf_as_json.get<crtcontrollermodule::Conf>();
   m_some_configured_value = conf_as_cpp.some_configured_value;
+
+  std::cout << "HEY!!! WE CONFIGURED!!! " << m_some_configured_value << std::endl;
 }
 
 } // namespace dunedaq::crtmodules

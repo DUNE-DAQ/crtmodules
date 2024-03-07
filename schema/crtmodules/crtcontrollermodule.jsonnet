@@ -18,12 +18,33 @@ local types = {
     // written in jsonnet. In the real world it would be written so as
     // to allow the relevant members of CRTControllerModule to be configured by
     // Run Control
-  
-    conf: s.record("Conf", [
-                           s.field("some_configured_value", self.int4, 999999,
-                                           doc="This line is where you'd document the value"),
+
+    gainlist: s.sequence("gains",self.uint4,doc="List of 64 gain values"),
+
+    board_conf: s.record("BoardConf", [
+                           s.field("usb_serial_number", self.uint4, doc="USB number from the CRT USB board"),
+			   s.field("pmt_board_number", self.uint4, doc="PMT board number"),
+			   s.field("hv_setting", self.uint8, 765, doc="HV setting for the PMT in V, maybe not used, def. 765"),
+			   s.field("dac_threshold", self.uint8, doc="DAC threshold in xxx units"),
+			   s.field("use_maroc2gain", self.boolean, doc="Flag to set gain on all channel (if false, use defaults)",
+			   s.field("gate", self.string, "off", doc="Type of gate to use ('off' means do not use one)"),
+			   s.field("pipedelay", self.uint8, 5, doc="pipe delay in clock cycles (default: 5)"),
+			   s.field("trigger_mode"), self.uint4, doc="What trigger mode to use (bitmask)"),
+			   s.field("force_trigger"), self.uint4, 0, doc="two-bit flag on how often to force a trigger (default 0, do not force trigger)",
+			   s.field("gain_values"), self.gainlist,
+			     [ 16, 16, 16, 16, 16, 16, 16, 16,
+			       16, 16, 16, 16, 16, 16, 16, 16,
+			       16, 16, 16, 16, 16, 16, 16, 16,
+			       16, 16, 16, 16, 16, 16, 16, 16,
+			       16, 16, 16, 16, 16, 16, 16, 16,
+			       16, 16, 16, 16, 16, 16, 16, 16,
+			       16, 16, 16, 16, 16, 16, 16, 16,
+			       16, 16, 16, 16, 16, 16, 16, 16],
+			     doc="list of 64 gain values, defaults to 16 for all")
                            ],
-                   doc="This configuration is for developer education only"),
+                   doc="Configuration for a single board"),
+		   
+    board_confs: s.sequence("board_confs",self.board_conf,doc="list of configs for each board")
 
 };
 
