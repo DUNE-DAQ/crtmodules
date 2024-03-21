@@ -60,8 +60,8 @@ def cli(config, json_dir):
     
     the_system.apps["crtmodulesapp"] = crtmodulesapp_gen.get_crtmodules_app(
         nickname = "the_solo_app", 
-	num_crtcontrollermodules = crtmodules.num_crtcontrollermodules,
-	some_configured_value = crtmodules.some_configured_value
+	    board_confs = crtmodules.crtmodule_list,
+        num_crtcontrollermodules = crtmodules.num_crtcontrollermodules
     )
 
     ####################################################################                                  

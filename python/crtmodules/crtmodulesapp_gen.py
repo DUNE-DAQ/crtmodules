@@ -16,7 +16,7 @@ from daqconf.core.app import App, ModuleGraph
 from daqconf.core.daqmodule import DAQModule
 #from daqconf.core.conf_utils import Endpoint, Direction
 
-def get_crtmodules_app(nickname, num_crtcontrollermodules, some_configured_value, host="localhost"):
+def get_crtmodules_app(nickname, num_crtcontrollermodules, board_confs, host="localhost"):
     """
     Here the configuration for an entire daq_application instance using DAQModules from crtmodules is generated.
     """
@@ -26,7 +26,7 @@ def get_crtmodules_app(nickname, num_crtcontrollermodules, some_configured_value
     for i in range(num_crtcontrollermodules):
         modules += [DAQModule(name = f"nickname{i}", 
                               plugin = "CRTControllerModule", 
-                              conf = crtcontrollermodule.Conf(some_configured_value = some_configured_value
+                              conf = crtcontrollermodule.Conf(BoardConfs = board_confs
                                 )
                     )]
 

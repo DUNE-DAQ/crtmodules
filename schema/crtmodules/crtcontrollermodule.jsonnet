@@ -22,16 +22,16 @@ local types = {
     gainlist: s.sequence("gains",self.uint4,doc="List of 64 gain values"),
 
     board_conf: s.record("BoardConf", [
-                           s.field("usb_serial_number", self.uint4, doc="USB number from the CRT USB board"),
-			   s.field("pmt_board_number", self.uint4, doc="PMT board number"),
+                           s.field("usb_serial", self.uint4, doc="USB number from the CRT USB board"),
+			   s.field("pmt_board", self.uint4, doc="PMT board number"),
 			   s.field("hv_setting", self.uint8, 765, doc="HV setting for the PMT in V, maybe not used, def. 765"),
 			   s.field("dac_threshold", self.uint8, doc="DAC threshold in xxx units"),
-			   s.field("use_maroc2gain", self.boolean, doc="Flag to set gain on all channel (if false, use defaults)",
+			   s.field("use_maroc2gain", self.boolean, doc="Flag to set gain on all channel (if false, use defaults)"),
 			   s.field("gate", self.string, "off", doc="Type of gate to use ('off' means do not use one)"),
 			   s.field("pipedelay", self.uint8, 5, doc="pipe delay in clock cycles (default: 5)"),
-			   s.field("trigger_mode"), self.uint4, doc="What trigger mode to use (bitmask)"),
-			   s.field("force_trigger"), self.uint4, 0, doc="two-bit flag on how often to force a trigger (default 0, do not force trigger)",
-			   s.field("gain_values"), self.gainlist,
+			   s.field("trigger_mode", self.uint4, doc="What trigger mode to use (bitmask)"),
+			   s.field("force_trigger", self.uint4, 0, doc="two-bit flag on how often to force a trigger (default 0, do not force trigger)"),
+			   s.field("gain", self.gainlist,
 			     [ 16, 16, 16, 16, 16, 16, 16, 16,
 			       16, 16, 16, 16, 16, 16, 16, 16,
 			       16, 16, 16, 16, 16, 16, 16, 16,
@@ -44,8 +44,11 @@ local types = {
                            ],
                    doc="Configuration for a single board"),
 		   
-    board_confs: s.sequence("board_confs",self.board_conf,doc="list of configs for each board")
+    board_confs: s.sequence("board_confs",self.board_conf,doc="list of configs for each board"),
 
+    conf: s.record("Conf", [
+        s.field( "BoardConfs", self.board_confs, doc="A list of settings to  configure the CRTControllerModule DAQModule instance")
+    ])
 };
 
 moo.oschema.sort_select(types, ns)
