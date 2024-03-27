@@ -16,7 +16,11 @@ daq_setup_environment()
 
 
 find_package(appfwk REQUIRED)
+find_package(logging REQUIRED)
 find_package(opmonlib REQUIRED)
+find_package(readoutmodules REQUIRED)
+find_package(fdreadoutlibs REQUIRED)
+find_package(fddetdataformats REQUIRED)
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
 ##############################################################################
@@ -24,15 +28,25 @@ find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
 # See https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/#daq_codegen
 
+daq_codegen(crtreader.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2)
 daq_codegen(crtcontrollermodule.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2)
 daq_codegen(crtcontrollermoduleinfo.jsonnet DEP_PKGS opmonlib TEMPLATES opmonlib/InfoStructs.hpp.j2 opmonlib/InfoNljs.hpp.j2)
 
 ##############################################################################
 
+set(CRTMODULES_DEPENDENCIES
+        #tools
+        appfwk::appfwk
+        logging::logging
+        readoutlibs::readoutlibs
+        readoutmodules::readoutmodules
+        fdreadoutlibs::fdreadoutlibs
+        fddetdataformats::fddetdataformats
+)
 
 # See https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/#daq_add_library
 
-daq_add_library( LINK_LIBRARIES ) # Any source files and/or dependent libraries to link in not yet determined
+daq_add_library( *.cc LINK_LIBRARIES ${CRTMODULES_DEPENDENCIES} ) # Any source files and/or dependent libraries to link in not yet determined
 
 ##############################################################################
 
@@ -49,6 +63,7 @@ daq_add_python_bindings(*.cpp LINK_LIBRARIES ${PROJECT_NAME} ) # Any additional 
 # See https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/#daq_add_plugin
 
 daq_add_plugin(CRTControllerModule duneDAQModule LINK_LIBRARIES appfwk::appfwk) # Replace appfwk library with a more specific library when appropriate
+daq_add_plugin(CRTReader duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk fdreadoutlibs::fdreadoutlibs readoutmodules::readoutmodules)
 
 ##############################################################################
 
