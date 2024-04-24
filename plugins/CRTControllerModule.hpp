@@ -49,6 +49,9 @@ private:
   // do_conf in CRTControllerModule.cpp
 
   void do_conf(const data_t&);
+  void do_start(const data_t&);
+  void do_stop(const data_t&);
+  void do_scrap(const data_t&);
 
   int m_some_configured_value { std::numeric_limits<int>::max() }; // Intentionally-ridiculous value pre-configuration
 

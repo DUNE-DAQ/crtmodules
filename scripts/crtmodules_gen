@@ -51,7 +51,7 @@ def cli(config, json_dir):
 
     console.log(f"\nIndividual configuration records after any command line overrides: ")
     console.log(f"boot configuration object: {boot.pod()}")
-    console.log(f"crtmodules configuration object: {crtmodules.pod()}")	
+    console.log(f"crtmodules configuration object: {crtmodules.pod()}")
 
     console.log("Loading crtmodulesapp config generator")
     from crtmodules import crtmodulesapp_gen
