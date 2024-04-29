@@ -70,7 +70,7 @@ daq_add_plugin(CRTReader duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk 
 
 # See https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/#daq_add_application
 SET_SOURCE_FILES_PROPERTIES( main.c PROPERTIES COMPILE_FLAGS "-Wno-pointer-sign -Wno-unused-parameter -Wno-unused-label -Wno-unused-but-set-variable -Wno-unused-function -Wno-return-type -Wno-format")
-daq_add_application(main_readout main.c LINK_LIBRARIES -lusb-1.0 -lm -lrt)
+daq_add_application(crt_readout main.c LINK_LIBRARIES -lusb-1.0 -lm -lrt)
 daq_add_application(startallboards startallboards.cxx LINK_LIBRARIES ) # Any libraries to link in not yet determined
 
 ##############################################################################

@@ -64,6 +64,7 @@ int gateonoff;
 int DACt;
 int trigger_mode;
 int fclload = 0;//mysql load flag set to 0 to start. 
+bool jsonload = 0;
 int gain[65];
 //static int pmtserialnumber;
 int force_trig;
@@ -259,21 +260,21 @@ void loadconfig(string mode_local, int usb_board, int pmt_board,string filename)
         for (unsigned int i=0; i< output_fcl.size(); i++){
             TLOG(TLVL_DEBUG) << "Attempting to parse fcl parameter ["<<i<<"][0] = \""<<output_fcl[i][0]<<"\"";
             usbtemp = std::stoi(output_fcl[i][0]);        
-            TLOG(TLVL_DEBUG) << "Attempting to parse fcl parameter ["<<i<<"][1] = \""<<output_fcl[i][0]<<"\"";
+            TLOG(TLVL_DEBUG) << "Attempting to parse fcl parameter ["<<i<<"][1] = \""<<output_fcl[i][1]<<"\"";
             pmttemp = std::stoi(output_fcl[i][2]);
-	    pmtdata[usbtemp][pmttemp][0] = output_fcl[i][1];//
-	    pmtdata[usbtemp][pmttemp][1] = output_fcl[i][2];//
-	    pmtdata[usbtemp][pmttemp][2] = output_fcl[i][3];//
-	    pmtdata[usbtemp][pmttemp][3] = output_fcl[i][4];//
-	    pmtdata[usbtemp][pmttemp][4] = output_fcl[i][5];//
-	    pmtdata[usbtemp][pmttemp][5] = output_fcl[i][6];//
-	    pmtdata[usbtemp][pmttemp][6] = output_fcl[i][7];//
-	    pmtdata[usbtemp][pmttemp][7] = output_fcl[i][9];//
-	    pmtdata[usbtemp][pmttemp][8] = output_fcl[i][8];//
+	    pmtdata[usbtemp][pmttemp][0] = output_fcl[i][1];//pmt serial
+	    pmtdata[usbtemp][pmttemp][1] = output_fcl[i][2];//board_number
+	    pmtdata[usbtemp][pmttemp][2] = output_fcl[i][3];//HV
+	    pmtdata[usbtemp][pmttemp][3] = output_fcl[i][4];//DAC threshold
+	    pmtdata[usbtemp][pmttemp][4] = output_fcl[i][5];//use maroc2gain
+	    pmtdata[usbtemp][pmttemp][5] = output_fcl[i][6];//pipedelay
+	    pmtdata[usbtemp][pmttemp][6] = output_fcl[i][7];//trigger_mode
+	    pmtdata[usbtemp][pmttemp][7] = output_fcl[i][9];//force_trig
+	    pmtdata[usbtemp][pmttemp][8] = output_fcl[i][8];//pmtboard_u
 	    pmtdata[usbtemp][pmttemp][9] = "fcl_mode";//
 	    pmtdata[usbtemp][pmttemp][10] = output_fcl[i][10];//            
             for (int j=0;j<64;j++){
-                TLOG(TLVL_DEBUG) << "Attempting to parse fcl parameter ["<<i<<"]["<<(j+11)<<"] = \""<<output_fcl[i][0]<<"\"";
+                TLOG(TLVL_DEBUG) << "Attempting to parse fcl parameter ["<<i<<"]["<<(j+11)<<"] = \""<<output_fcl[i][j+11]<<"\"";
                 gaindata[usbtemp][pmttemp][j] = std::stoi(output_fcl[i][j+11]);
             }
             totalpmt++;				
@@ -287,6 +288,33 @@ void loadconfig(string mode_local, int usb_board, int pmt_board,string filename)
         }
 	fclload = 1;	
     } 
+}
+
+void loadconfig_json(int usb, int pmt, int hv, int dac, bool use_maroc2gain, string gate, int pipedelay, int trigger_mode, int force_trigger, int gain[64]){
+	pmtdata[usb][pmt][0] = "5230";
+	pmtdata[usb][pmt][1] = std::to_string(pmt);
+	pmtdata[usb][pmt][2] = std::to_string(hv);
+	pmtdata[usb][pmt][3] = std::to_string(dac);
+	pmtdata[usb][pmt][4] = (use_maroc2gain) ? "yes" : "no";
+	pmtdata[usb][pmt][5] = gate;
+	pmtdata[usb][pmt][6] = std::to_string(pipedelay);
+	pmtdata[usb][pmt][7] = std::to_string(force_trigger);
+	pmtdata[usb][pmt][8] = std::to_string(trigger_mode);
+	pmtdata[usb][pmt][9] = "json mode";
+	pmtdata[usb][pmt][10] = std::to_string((100*usb)+pmt);
+	for(int j=0; j<64; j++){
+	   gaindata[usb][pmt][j]=gain[j];
+	}
+	totalpmt++;
+	pmttousb[totalpmt] = usb;
+	pmttoboard[totalpmt] = pmt;
+	structure[usb] = 0;
+	usbhowmanyboards[1][usbhowmanyboardscount] = usb;
+	usbhowmanyboards[0][usbhowmanyboardscount]++;
+	pmtnumbers[totalpmt] = pmt;
+	usbhowmanyboardscount++;
+
+	jsonload = 1;
 }
 
 int getnumpmt(){
@@ -846,12 +874,12 @@ void initializeboard(string define_runnumber, int trigger_num, int pmtini, int p
         if(usemaroc2gainconstantsmb.compare("no")==0){
             com_usb(usb_local, pmt_local, 74, 0b0100000);  // default gain
         }
-        else if(usemaroc2gainconstantsmb.compare("yes")==0 && fclload == 0){
+        else if(usemaroc2gainconstantsmb.compare("yes")==0 && fclload == 0 && jsonload == 0){
             //printf("Error cannot load mysql gain constants from MYSQL\n");
             TRACE(TLVL_WARNING,"Error cannot load mysql gain constants from MYSQL, using default gain\n");
             com_usb(usb_local, pmt_local, 74, 0b0100000);  // default gain
         }
-        else if(usemaroc2gainconstantsmb.compare("yes")==0 && fclload == 1){
+        else if(usemaroc2gainconstantsmb.compare("yes")==0 && (fclload == 1 || jsonload == 1)){
             for(int index = 1 ; index < 65; index++){
                 com_usb(usb_local, pmt_local, index - 1, 2*gain[index]);  // applying gain constants from MySQL
 		}

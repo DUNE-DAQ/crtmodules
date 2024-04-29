@@ -33,7 +33,7 @@ int startallboards(const char *argv, const char *online_path)
     //TODO Change this to work with hardware library
   //string dir_path = "/home/nfs/icarus/DAQ_DevAreas/DAQ_12Dec2022_rhowell/srcs/sbndaq_artdaq/sbndaq-artdaq/Generators/ICARUS/BottomInterface/ICARUS_DAQ";
   //string cmd = dir_path + "\\/bottomCRTreadout\\/script\\/start_bottomCRTreadout.sh \"bottomCRTreadout\" \"1\" \"1\" \"none\"";
-    string cmd = "main_readout -d 1 &";
+    string cmd = "crt_readout -d 1 &";
     system(cmd.c_str());
 
     //Data may be written wherever, but the code assumes there is a symbolic link $(online_path)/bottomCRTreadout/data1 

@@ -37,7 +37,7 @@ int stopallboards(const char *argv, const char *online_path){
   int sig = 9;
   unsigned pids_found= 0;
   int pidno[5];
-  FILE *fp = popen("/sbin/pidof main_readout","r");
+  FILE *fp = popen("/sbin/pidof crt_readout","r");
   if (fp) {
     pidline[0]='x'; pidline[1]='\0';
     char *ret= fgets(pidline,sizeof(pidline),fp);

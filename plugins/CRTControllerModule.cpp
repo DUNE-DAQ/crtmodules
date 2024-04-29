@@ -15,6 +15,7 @@
 
 #include "startallboards.cc"
 #include "stopallboards.cc"
+#include "CRT.cc"
 
 #include <string>
 #include <iostream>
@@ -47,12 +48,48 @@ CRTControllerModule::get_info(opmonlib::InfoCollector& ci, int /* level */)
 void
 CRTControllerModule::do_conf(const data_t& conf_as_json)
 {
-  auto conf_as_cpp = conf_as_json.get<crtcontrollermodule::BoardConf>();
-  m_some_configured_value = conf_as_cpp.hv_setting;
+// auto conf_as_cpp = obj.get<crtcontrollermodule::board_confs>();
+ auto cfg_ = conf_as_json;
+ int usb_serial, pmt_board, hv_setting, dac_threshold, pipedelay, trigger_mode, force_trigger;
+ bool use_maroc2gain;
+ string gate;
+ int gain[64];
+ for(nlohmann::json::iterator it = cfg_.begin(); it != cfg_.end(); it++){
+   std::cout << "iterator key: " << it.key() << std::endl;
+   if(it.key()=="BoardConfs"){
+     std::vector<crtcontrollermodule::BoardConf> v_conf = (*it).get<std::vector<crtcontrollermodule::BoardConf>>();
+     for(int i=0;i<v_conf.size();i++){ //Loop over boards
+       usb_serial = v_conf[i].usb_serial;
+       pmt_board = v_conf[i].pmt_board;
+       hv_setting = v_conf[i].hv_setting;
+       dac_threshold = v_conf[i].dac_threshold;
+       use_maroc2gain = v_conf[i].use_maroc2gain;
+       gate = v_conf[i].gate;
+       pipedelay = v_conf[i].pipedelay;
+       trigger_mode = v_conf[i].trigger_mode;
+       force_trigger = v_conf[i].force_trigger;
+       for(int j = 0; j<64; j++){
+         gain[j] = v_conf[i].gain[j];
+       }
+       std::cout << "--Configuring PMT board #" << i << ", with settings:\n";
+       std::cout << "----USB Serial: " << usb_serial << "\n";
+       std::cout << "----PMT Board: " << pmt_board << "\n";
+       std::cout << "----HV Setting: " << hv_setting << "\n";
+       std::cout << "----DAC Threshold: " << dac_threshold << "\n";
+       std::cout << "----Use Maroc2 Gain?: " << use_maroc2gain << "\n";
+       std::cout << "----Gate: " << gate << "\n";
+       std::cout << "----Pipe Delay: " << pipedelay << "\n";
+       std::cout << "----Trigger Mode: " << trigger_mode << "\n";
+       std::cout << "----Force Trigger: " << force_trigger << "\n";
+       std::cout << "-----------------------------------------\n";
+     
+       loadconfig_json(usb_serial, pmt_board, hv_setting, dac_threshold, use_maroc2gain, gate, pipedelay, trigger_mode, force_trigger, gain);
+     }
+   }
+ }
 
-  std::cout << "HEY!!! WE CONFIGURED!!! " << m_some_configured_value << std::endl;
 
-  
+  //std::cout << "HEY!!! WE CONFIGURED!!! " << m_some_configured_value << std::endl;
 
 }
 
@@ -62,7 +99,23 @@ CRTControllerModule::do_start(const data_t&)
   std::cout << "In do_start() method\n";
   char indir[] = "/data0";
   char configfile[] = "/nfs/home/madmurph/VT_daq/ICARUS_DAQ/DAQ_CPP_v1/fcl_oneboard.fcl";
-  startallboards(configfile,indir);
+  //startallboards(configfile,indir);
+  //Replace startallboards call with its components
+  string filename = configfile;
+  int PMTINI, PMTFIN;
+  string cmd = "crt_readout -d 1 &";
+  system(cmd.c_str());
+  //string mode = "fcl";
+  //dunedaq::crtmodules::loadconfig(mode,0,0,filename);
+
+  PMTINI = 1;
+  PMTFIN = dunedaq::crtmodules::getnumpmt();
+
+  dunedaq::crtmodules::initializeboard("auto",1000,PMTINI,PMTFIN,indir);
+  int res = dunedaq::crtmodules::eventbuilder("auto",PMTINI,PMTFIN,indir);
+
+  dunedaq::crtmodules::starttakedata(PMTINI,PMTFIN);
+  
   std::cout << "Exiting do_start() method\n";
 }
 

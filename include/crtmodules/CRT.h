@@ -25,6 +25,7 @@ void initializeboard(string define_runnumber, int trigger_num, int pmtini, int p
 void process_signal(int usb);
 
 void loadconfig(string mode_local, int usb_board, int pmt_board, string filename);
+void loadconfig_json(int usb, int pmt, int hv, int dac, bool use_maroc2gain, string gate, int pipedela, int trigger_mode, int force_trigger, int gain[64]);
 int scanFiles(string inputDirectory);
 void starttakedata(int pmtini, int pmtfin);
 void stoptakedata(int pmtini, int pmtfin, string online_path);
