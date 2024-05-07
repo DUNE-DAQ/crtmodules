@@ -75,7 +75,6 @@ CRTReader::do_conf(const nlohmann::json& obj)
 void
 CRTReader::do_scrap(const nlohmann::json& /*obj*/)
 {
-    hardware_interface_->FreeReadoutBuffer(readout_buffer_);
 }
 
 void
