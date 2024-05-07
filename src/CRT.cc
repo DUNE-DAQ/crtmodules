@@ -54,11 +54,11 @@ namespace crtmodules{
 
 int pmt;
 static int totalpmt;
-int usbhowmanyboards[2][10]={0};
+int usbhowmanyboards[2][50]={0};
 int usbhowmanyboardscount = 0;
-int pmttousb[10];
-int pmttoboard[10];
-int pmtnumbers[10];
+int pmttousb[50];
+int pmttoboard[50];
+int pmtnumbers[50];
 int structure[128]={-10};
 int gateonoff;
 int DACt;
