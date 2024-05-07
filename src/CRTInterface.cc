@@ -291,8 +291,7 @@ bool CRTInterface::check_events()
   if(inotify_bread == inotifybufsize)
     //TLOG(TLVL_WARNING, "CRTInterface")
       std::cout << "Filled buf when reading from inotify!  We might have missed some events.\n";
-  //TLOG(TLVL_DEBUG, "CRTInterface") 
-  std::cout << "Got " << inotify_bread/sizeof(struct inotify_event) << " inotify events.\n";
+  TLOG_DEBUG(TLVL_CRTINTERFACE) << "Got " << inotify_bread/sizeof(struct inotify_event) << " inotify events.\n";
   /*const struct inotify_event* event;
   for(auto ptr = filechange;
       ptr < filechange + inotify_bread;
@@ -328,14 +327,12 @@ bool CRTInterface::check_events()
   //
   //      Looks like problem is instead that raw2cook() is returning 0 bytes despite 
   //      full buffer.  
-  //TLOG(TLVL_DEBUG, "CRTInterface") 
-  std::cout << "Got a \"modified\" event from inotify.\n";
+  TLOG_DEBUG(TLVL_CRTINTERFACE) << "Got a \"modified\" event from inotify.\n";
   if(state & CRT_READ_ACTIVE) return true; //Note: Without the below error check, we remove an 
                                            //      if statement by returning state & CRT_READ_ACTIVE
                                            //      cast to bool directly.  
   
-  //TLOG(TLVL_WARNING, "CRTInterface")
-  std::cout << "...but not watching a file!\n";
+  TLOG_DEBUG(TLVL_CRTINTERFACE) << "...but not watching a file!\n";
   return false;
 }
 
@@ -392,7 +389,17 @@ void CRTInterface::FillBuffer(char* cooked_data, size_t* bytes_ret)
 
 ///////DUNE DAQ HEADER///////////////////
 
-const uint64_t daqheader1 = 0x04400009C0000000;
+//const uint64_t daqheader1 = 0x04400009C0000000; //39
+//const int64_t daqheader1 = 0x0440000580000000; //22
+const int64_t version = (1UL << 58); //first 6 bits
+const int64_t det_id = (4UL << 52); //next 6 bits
+const int64_t crate_id = (0UL << 42); //next 10 bits
+const int64_t slot_id = (0UL << 38); //next 4 bits
+const int64_t stream_id = (usbnumber << 30); //next 8 bits
+//Then after this are "reserved"(6 bits), "sequence_id"(12 bits), and "block_length"(12 bits), all zeroes
+
+const int64_t daqheader1 = version + det_id + crate_id + slot_id + stream_id;
+
 const uint64_t daqheader2 = (std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count())/16;
 
 std::memcpy(cooked_data, &daqheader1, 8);
@@ -525,8 +532,7 @@ std::memcpy(cooked_data + 8, &daqheader2, 8);
     std::memcpy(cooked_data+j,&zchar,1);
   }
   ////////////////////////////////////////////////
-  //TLOG(TLVL_DEBUG, "CRTInterface")
-  std::cout << "Returning with " << bytes_ret
+  TLOG_DEBUG(TLVL_CRTINTERFACE) << "Returning with " << bytes_ret
             << " bytes at the very end of FillBuffer()'s scope.\n";
 }
 
