@@ -72,6 +72,12 @@ private:
   std::unique_ptr<CRTInterface> hardware_interface_;
   char* readout_buffer_;
   crtreader::Conf cfg_;
+
+  uint32_t lowertime_per_mod[32] = {0};
+  uint64_t syncs_per_mod[32] = {0};
+  const uint64_t sync_length = 112408480; //TEMPORARY, subject to change
+  const uint32_t rolloverThreshold = 5000000; //May want to tune
+  uint64_t full_timestamp = 0;
 };
 } // namespace crtmodules
 } // namespace dunedaq
