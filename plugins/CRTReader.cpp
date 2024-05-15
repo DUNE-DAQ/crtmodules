@@ -46,12 +46,25 @@ void
 CRTReader::init(const nlohmann::json& iniobj)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering init() method";
-  auto qi = appfwk::connection_index(iniobj, { "output_1003" });
-  try {
-    outputQueue_ = get_iom_sender<fdreadoutlibs::types::CRTTypeAdapter>(qi["output_1003"]);
+
+  auto conn_refs = appfwk::connection_refs(iniobj);
+  std::string q_uid = "crt_stream";
+  for(const auto& qi : conn_refs){
+
+    if(qi.name.rfind("output",0) == 0) {
+      TLOG_DEBUG(TLVL_CRTREADER) << ": CRTReader output queue is " << qi.uid;
+      q_uid = qi.uid;
+    } else {
+      continue;      
+    }
+  }
+
+  try {    
+    outputQueue_ = get_iom_sender<fdreadoutlibs::types::CRTTypeAdapter>(q_uid);
   } catch (const ers::Issue& excpt) {
     throw InvalidQueueFatalError(ERS_HERE, get_name(), "crt_stream", excpt);
   }
+  
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting init() method";
 }
 
