@@ -44,6 +44,7 @@ local cs = {
   crtmodules: s.record('crtmodules', [
       s.field('crtmodule_list', self.crtmodulelist, default=[], doc='wrapper for list of modules'),
       s.field('num_crtcontrollermodules', self.num_modules_selector, default=1, doc='Number of CRT controller modules'),
+      s.field('host',types.host,default="localhost",doc="host name where crt controller app should run")
     ], doc='wrapper for list of modules'),
 
   crtmodules_gen: s.record("crtmodules_gen", [

@@ -292,7 +292,7 @@ bool CRTInterface::check_events()
     //TLOG(TLVL_WARNING, "CRTInterface")
       std::cout << "Filled buf when reading from inotify!  We might have missed some events.\n";
   //TLOG(TLVL_DEBUG, "CRTInterface") 
-  std::cout << "Got " << inotify_bread/sizeof(struct inotify_event) << " inotify events.\n";
+  //std::cout << "Got " << inotify_bread/sizeof(struct inotify_event) << " inotify events.\n";
   /*const struct inotify_event* event;
   for(auto ptr = filechange;
       ptr < filechange + inotify_bread;
@@ -329,7 +329,7 @@ bool CRTInterface::check_events()
   //      Looks like problem is instead that raw2cook() is returning 0 bytes despite 
   //      full buffer.  
   //TLOG(TLVL_DEBUG, "CRTInterface") 
-  std::cout << "Got a \"modified\" event from inotify.\n";
+  //std::cout << "Got a \"modified\" event from inotify.\n";
   if(state & CRT_READ_ACTIVE) return true; //Note: Without the below error check, we remove an 
                                            //      if statement by returning state & CRT_READ_ACTIVE
                                            //      cast to bool directly.  
@@ -526,8 +526,8 @@ std::memcpy(cooked_data + 8, &daqheader2, 8);
   }
   ////////////////////////////////////////////////
   //TLOG(TLVL_DEBUG, "CRTInterface")
-  std::cout << "Returning with " << bytes_ret
-            << " bytes at the very end of FillBuffer()'s scope.\n";
+  //std::cout << "Returning with " << bytes_ret
+  //          << " bytes at the very end of FillBuffer()'s scope.\n";
 }
 
 void CRTInterface::SetBaselines()
