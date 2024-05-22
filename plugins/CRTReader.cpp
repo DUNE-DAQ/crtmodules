@@ -151,7 +151,7 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
           }
 	    bool successfullyWasSent = false;
         while (!successfullyWasSent && running_flag.load()) {
-            TLOG_DEBUG(TLVL_CRTREADER) << get_name() << ": Pushing the reversed list onto the output queue";
+            TLOG_DEBUG(TLVL_CRTREADER) << get_name() << ": Pushing CRT frame onto the output queue";
             try {
                 outputQueue_->send(std::move(to_send), queueTimeout_);
                 successfullyWasSent = true;
