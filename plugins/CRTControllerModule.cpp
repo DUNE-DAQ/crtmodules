@@ -99,14 +99,20 @@ CRTControllerModule::do_start(const data_t&)
   std::cout << "In do_start() method\n";
   char indir[] = "/data0";
   char configfile[] = "/nfs/home/madmurph/VT_daq/ICARUS_DAQ/DAQ_CPP_v1/fcl_oneboard.fcl";
-  //startallboards(configfile,indir);
-  //Replace startallboards call with its components
-  string filename = configfile;
+  
   int PMTINI, PMTFIN;
-  string cmd = "crt_readout -d 1 &";
+  
+  std::cout << "Killing previous readout processes, if any.\n";
+  string cmd = "killall crt_readout";
   system(cmd.c_str());
-  //string mode = "fcl";
-  //dunedaq::crtmodules::loadconfig(mode,0,0,filename);
+
+  std::cout << "Removing all existing message queues, if they exist.\n";
+  cmd = "ipcrm -Q 0x0000270f -Q 0x0000271e -Q 0x00002713 -Q 0x00002726 -Q 0x0000271d";
+  //With the usb numbers we're using, the queues will have keys 9999, 10003, 10013, 10014, 10022
+  system(cmd.c_str());
+
+  cmd = "crt_readout -d 1 &";
+  system(cmd.c_str());
 
   PMTINI = 1;
   PMTFIN = dunedaq::crtmodules::getnumpmt();
@@ -127,6 +133,9 @@ CRTControllerModule::do_stop(const data_t&)
   char configfile[] = "/nfs/home/madmurph/VT_daq/ICARUS_DAQ/DAQ_CPP_v1/fcl_oneboard.fcl";
 
   stopallboards(configfile,indir);
+
+  string cmd = "ipcrm -Q 0x0000270f -Q 0x0000271e -Q 0x00002713 -Q 0x00002726 -Q 0x0000271d";
+  system(cmd.c_str());
 
   std::cout << "Exiting do_stop() method\n"; 
 }

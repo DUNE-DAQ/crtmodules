@@ -1146,7 +1146,7 @@ int main(int argc, char **argv)
 	char c, *cp;
 	char log_dir[200];
 
-	setenv("TRACE_FILE","/tmp/trace_icarus_p1",0);
+	setenv("TRACE_FILE","/tmp/trace_crt_readout",0);
 	if ((cp=getenv("TRACE_FILE"))) {
 	  sprintf(g_msg_buf, "env.var. TRACE_FILE=%s",cp );
 	  TRACE(TLVL_INFO, g_msg_buf);
