@@ -120,61 +120,63 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
   int sentCount = 0;
   bool gotRunStartTime = false;
   uint64_t run_start_time = 0;
+  
   while (running_flag.load()) {
-      size_t bytes_read = 0;
-      hardware_interface_->FillBuffer(readout_buffer_, &bytes_read);
-      if(bytes_read>0){
-	  uint32_t lowertime = *(uint32_t*)(readout_buffer_+28); //The 62.5 MHz counter timestamp is a 32-bit number after the first 28 bytes
-	  uint16_t module_num = *(uint16_t*)(readout_buffer_+18);//The module number is a 16-bit number after the first 18 bytes
-	  uint64_t tpacket = hardware_interface_->GetTpacket();
-	  if(tpacket == 0){continue;}
-	  if(!gotRunStartTime && tpacket != 0){
-	    run_start_time = tpacket*62500000-lowertime;
-	    gotRunStartTime = true;
-	  }
-	  if(lowertime_per_mod[module_num] == 0){ //First event in each board
-	    lowertime_per_mod[module_num] = lowertime;
-	    full_timestamp = run_start_time + (uint64_t)lowertime;
-	  }
-	  else{ //Any other event
-	    if(lowertime + rolloverThreshold < lowertime_per_mod[module_num]){
-	      syncs_per_mod[module_num]++;
-	    }
-	    full_timestamp = run_start_time + (uint64_t)lowertime + syncs_per_mod[module_num]*sync_length;
-	    lowertime_per_mod[module_num] = lowertime;
-	  }
-	  const uint64_t daq_header_ts = full_timestamp;
-	  std::memcpy(readout_buffer_+8,&daq_header_ts,8); //Copy correct timestamp into the frame
-          fdreadoutlibs::types::CRTTypeAdapter to_send;
-          for(int k=0;k<288;k++){
-	        to_send.data[k] = *(char*)(readout_buffer_+k);
-          }
-	    bool successfullyWasSent = false;
-        while (!successfullyWasSent && running_flag.load()) {
-            TLOG_DEBUG(TLVL_CRTREADER) << get_name() << ": Pushing CRT frame onto the output queue";
-            try {
-                outputQueue_->send(std::move(to_send), queueTimeout_);
-                successfullyWasSent = true;
-                ++sentCount;
-            } catch (const dunedaq::iomanager::TimeoutExpired& excpt) {
-                std::ostringstream oss_warn;
-                oss_warn << "push to output queue \"" << outputQueue_->get_name() << "\"";
-                ers::warning(dunedaq::iomanager::TimeoutExpired(
-                             ERS_HERE,
-                             get_name(),
-                             oss_warn.str(),
-                             std::chrono::duration_cast<std::chrono::milliseconds>(queueTimeout_).count()));
-            }
-        } 
+    size_t bytes_read = 0;
+    hardware_interface_->FillBuffer(readout_buffer_, &bytes_read);
+    if(bytes_read>0){
+      uint32_t lowertime = *(uint32_t*)(readout_buffer_+28); //The 62.5 MHz counter timestamp is a 32-bit number after the first 28 bytes
+      uint16_t module_num = *(uint16_t*)(readout_buffer_+18);//The module number is a 16-bit number after the first 18 bytes
+      uint64_t tpacket = hardware_interface_->GetTpacket();
+      if(tpacket == 0){continue;}
+      if(!gotRunStartTime && tpacket != 0){
+        run_start_time = tpacket*62500000-lowertime;
+        gotRunStartTime = true;
+      }
+      if(lowertime_per_mod[module_num] == 0){ //First event in each board
+        lowertime_per_mod[module_num] = lowertime;
+        full_timestamp = run_start_time + (uint64_t)lowertime;
+      }
+      else{ //Any other event
+        if(lowertime + rolloverThreshold < lowertime_per_mod[module_num]){
+          syncs_per_mod[module_num]++;
+        }
+        full_timestamp = run_start_time + (uint64_t)lowertime + syncs_per_mod[module_num]*sync_length;
+        lowertime_per_mod[module_num] = lowertime;
+      }
+      const uint64_t daq_header_ts = full_timestamp;
+      std::memcpy(readout_buffer_+8,&daq_header_ts,8); //Copy correct timestamp into the frame
+      fdreadoutlibs::types::CRTTypeAdapter to_send;
+      char* data = reinterpret_cast<char*>(&(to_send.crtdata));
+      for(int k=0;k<288;k++){
+        std::memcpy(data+k,readout_buffer_+k,1);
+        //to_send.data[k] = *(char*)(readout_buffer_+k);
+      }
+      //std::memcpy((char*)(&(to_send.crtdata)),&readout_buffer_,288);
+      bool successfullyWasSent = false;
+      while (!successfullyWasSent && running_flag.load()) {
+        TLOG_DEBUG(TLVL_CRTREADER) << get_name() << ": Pushing CRT frame onto the output queue";
+        successfullyWasSent = outputQueue_->try_send(std::move(to_send), queueTimeout_);
+        ++sentCount;
+        if ( !successfullyWasSent ) {
+          std::ostringstream oss_warn;
+          oss_warn << "push to output queue \"" << outputQueue_->get_name() << "\"";
+          ers::warning(dunedaq::iomanager::TimeoutExpired(
+                                                          ERS_HERE,
+                                                          get_name(),
+                                                          oss_warn.str(),
+                                                          std::chrono::duration_cast<std::chrono::milliseconds>(queueTimeout_).count()));
+        }
+      } 
       
-      }
-      else{
-        continue;
-      }
+    }
+    else{
+      continue;
+    }
   }
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_work() method";
 }
-
+  
 } // namespace fdreadoutmodules
 } // namespace dunedaq
 
