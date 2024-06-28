@@ -10,19 +10,21 @@
 #include <ctype.h>
 #include <vector>
 #include <cmath>
+#include <sstream>
 
 //using namespace std;
 
 using std::cout;
 using std::endl;
 using std::string;
+using std::stringstream;
 namespace decode {
 int datasize = 0;
 int extrasize = 0;
-int check_debug(int);
-void got_word(int);
-void check_data();
-void flush_extra();
+int check_debug(int, stringstream&);
+void got_word(int, stringstream&);
+void check_data(stringstream&);
+void flush_extra(stringstream&);
 
 int buf_size = 16 * 1024;
 
@@ -42,7 +44,7 @@ int word_index = 0;
 
 
 
-void got_word(int d)
+void got_word(int d, stringstream& ss)
 {
     words++;
     int type = (d >> 22) & 3;
@@ -51,16 +53,16 @@ void got_word(int d)
         int b1 = (d >> 16) & 63;
         int b2 = (d >> 8) & 255;
         int b3 = d & 255;
-        flush_extra();
-        std::cout << "c," << b1 << "," << b2 << "," << b3 << "\n";
+        flush_extra(ss);
+        ss << "c," << b1 << "," << b2 << "," << b3 << "\n";
     }
     else if(type == 3)
     {
-        if(check_debug(d))
+        if(check_debug(d,ss))
             return;
         data[datasize] = d & 65535;
         datasize++;
-        check_data();
+        check_data(ss);
     }
     else
     {
@@ -68,7 +70,7 @@ void got_word(int d)
     }
 }
 
-void check_data()
+void check_data(stringstream& ss)
 {
     while(1)
     {
@@ -93,13 +95,13 @@ void check_data()
                 if(!par)                        // check parity
                 {
                     got_packet = 1;
-                    flush_extra();
-                    std::cout << "p";
+                    flush_extra(ss);
+                    ss << "p";
                     for(int j = 1; j<len; j++)
                     {
-                        std::cout << "," << data[j];
+                        ss << "," << data[j];
                     }
-                    std::cout << "\n";
+                    ss << "\n";
                     for(int t = 0; t <= len + 1; t++)
                     {
                         data[t] = data[t+len+1];
@@ -122,7 +124,7 @@ void check_data()
 }
 
 
-int check_debug(int d)
+int check_debug(int d, stringstream& ss)
 {
     int a = (d >> 16) & 255;
     d = d & 65535;
@@ -139,8 +141,8 @@ int check_debug(int d)
         {
             int time = (time_hi << 16) | d;
             got_hi = 0;
-            flush_extra();
-            std::cout << "t," << time << "\n";
+            flush_extra(ss);
+            ss << "t," << time << "\n";
         }
         return 1;
     }
@@ -161,21 +163,21 @@ int check_debug(int d)
             {
                 diff += (1UL << 32);
             }
-            flush_extra();
-            std::cout << "n," << t << "," << v << "," << words << "," << diff << "\n";
+            flush_extra(ss);
+            ss << "n," << t << "," << v << "," << words << "," << diff << "\n";
         }
         return 1;
     }
     else if(a == 193)
     {
-        flush_extra();
-        std::cout << "dac," << d << "\n";
+        flush_extra(ss);
+        ss << "dac," << d << "\n";
         return 1;
     }
     else if(a == 194)
     {
-        flush_extra();
-        std::cout << "delay," << d << "\n";
+        flush_extra(ss);
+        ss << "delay," << d << "\n";
         return 1;
     }
     else
@@ -186,18 +188,18 @@ int check_debug(int d)
 
 
 
-void flush_extra()
+void flush_extra(stringstream& ss)
 {
     if(extrasize)
     {
-        std::cout << "x,";
+        ss << "x,";
         for(int i = 0;i<extrasize;i++)
         {
-            std::cout << extra[i] << ",";
+            ss << extra[i] << ",";
             extra[i] = 0;
         }
         extrasize= 0;
-        std::cout << "\n";
+        ss << "\n";
     }
 }
 
@@ -209,7 +211,7 @@ void flush_extra()
 
 
 
-void decode(std::string file)
+void decode(std::string file, stringstream& ss)
 {
     
     std::ifstream IN(file.c_str());
@@ -245,7 +247,7 @@ void decode(std::string file)
                         if(++EXP == 4)
                         {
                             EXP = 0;
-                            got_word(word);
+                            got_word(word,ss);
                         }
                     }
                     else
@@ -262,17 +264,9 @@ void decode(std::string file)
             extra[i+extrasize] = data[i];
         }
         extrasize = extrasize + datasize;
-        flush_extra();
+        flush_extra(ss);
         IN.close();
     }
-}
-
-int dodecode(const char argv[])
-{
-    char file[512];
-    sscanf(argv,"%s",file);
-    decode(file);
-    return 0;
 }
 
 }

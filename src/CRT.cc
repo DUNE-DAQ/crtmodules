@@ -1007,9 +1007,7 @@ int eventbuilder(string DataPath, int pmtini, int pmtfin, string online_path)
         unsigned long delta = 0;
         
         std::stringstream ss;
-        auto old_buf = std::cout.rdbuf(ss.rdbuf());
-        decode::dodecode(file.c_str());
-        std::cout.rdbuf(old_buf);
+        decode::decode(file, ss);
 	  
 	  int hist[64][2048] = {0};
 
@@ -1054,6 +1052,10 @@ int eventbuilder(string DataPath, int pmtini, int pmtfin, string online_path)
 			  //data
 			  int data = atof(line[3 + 2 * i + 1].c_str());  //
 			  int channel = atoi(line[4 + 2 * i + 1].c_str());  //Channels from 0-63
+			  if(mod > pmttoboard[pmtfin] || mod < 0 || data < 0 || data > 2047 || channel < 0 || channel > 63){
+			    TLOG(TLVL_WARNING) << "Nonesense baseline data: Mod: " << mod << ", ch: " << channel << ", data: " << data << "\n";
+			    continue;
+			  };
 
 			  if(mod==pmttoboard[pmt1])
 			  {
@@ -1061,7 +1063,7 @@ int eventbuilder(string DataPath, int pmtini, int pmtfin, string online_path)
 			  }
 			  
 			}
-                    }
+		     }
                 }
             }
         }
