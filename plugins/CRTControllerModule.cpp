@@ -88,7 +88,6 @@ CRTControllerModule::do_conf(const data_t& conf_as_json)
    }
  }
 
-
   //std::cout << "HEY!!! WE CONFIGURED!!! " << m_some_configured_value << std::endl;
 
 }
@@ -98,7 +97,6 @@ CRTControllerModule::do_start(const data_t&)
 {
   std::cout << "In do_start() method\n";
   char indir[] = "/data0";
-  char configfile[] = "/nfs/home/madmurph/VT_daq/ICARUS_DAQ/DAQ_CPP_v1/fcl_oneboard.fcl";
   
   int PMTINI, PMTFIN;
   
@@ -113,6 +111,8 @@ CRTControllerModule::do_start(const data_t&)
 
   cmd = "crt_readout -d 1 &";
   system(cmd.c_str());
+
+  sleep(1); //Need time to be sure readout processes are started
 
   PMTINI = 1;
   PMTFIN = dunedaq::crtmodules::getnumpmt();
@@ -130,9 +130,8 @@ CRTControllerModule::do_stop(const data_t&)
 {
   std::cout << "In do_stop() method\n";
   char indir[] = "/data0";
-  char configfile[] = "/nfs/home/madmurph/VT_daq/ICARUS_DAQ/DAQ_CPP_v1/fcl_oneboard.fcl";
 
-  stopallboards(configfile,indir);
+  stopallboards(indir);
 
   string cmd = "ipcrm -Q 0x0000270f -Q 0x0000271e -Q 0x00002713 -Q 0x00002726 -Q 0x0000271d";
   system(cmd.c_str());

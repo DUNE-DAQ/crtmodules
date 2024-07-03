@@ -17,13 +17,8 @@ using std::endl;
 using std::string;
 using std::istringstream;
 
-int stopallboards(const char *argv, const char *online_path){ 
-  string fname;
+int stopallboards(const char *online_path){ 
   int PMTINI,PMTFIN; 
-  fname = argv;
-    
-  //string mode = "fcl";
-  //Bottom::loadconfig(mode,0,0,0,fname);                       //read fcl file and load PMT data
 
   PMTINI = 1;
   PMTFIN = dunedaq::crtmodules::getnumpmt();
