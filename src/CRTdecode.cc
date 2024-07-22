@@ -435,4 +435,9 @@ unsigned int raw2cook(char * const cooked_data,
   return cooked_bytes;
 }
 
+void ClearTpacket(){
+  tpacket_raw=0;
+  return;
+}
+
 } // end namespace CRT

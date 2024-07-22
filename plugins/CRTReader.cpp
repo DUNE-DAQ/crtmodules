@@ -79,8 +79,6 @@ CRTReader::do_conf(const nlohmann::json& obj)
     auto hwi_ptr_ = std::make_unique<CRTInterface>(data_directory,usb);
     hardware_interface_.swap(hwi_ptr_);
     hardware_interface_->AllocateReadoutBuffer(&readout_buffer_);
-    hardware_interface_->StartDatataking();
-    hardware_interface_->SetBaselines();
 
     TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_configure() method";
 }
@@ -95,6 +93,8 @@ void
 CRTReader::do_start(const nlohmann::json& /*startobj*/)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_start() method";
+  hardware_interface_->StartDatataking();
+  hardware_interface_->SetBaselines();
   thread_.start_working_thread();
 
   TLOG() << get_name() << " successfully started";
@@ -108,6 +108,12 @@ CRTReader::do_stop(const nlohmann::json& /*stopobj*/)
   thread_.stop_working_thread();
 
   hardware_interface_->StopDatataking();
+
+  //Reset time counters to 0 in case we restart without a scrap
+  for(int i=0;i<32;i++){
+    lowertime_per_mod[i]=0;
+    syncs_per_mod[i]=0;
+  }
 
   TLOG() << get_name() << " successfully stopped";
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_stop() method";
@@ -131,6 +137,7 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
       if(tpacket == 0){continue;}
       if(!gotRunStartTime && tpacket != 0){
         run_start_time = tpacket*62500000-lowertime;
+	TLOG(TLVL_INFO) << get_name() << ": Run start time set to " << run_start_time << " ticks";
         gotRunStartTime = true;
       }
       if(lowertime_per_mod[module_num] == 0){ //First event in each board
@@ -168,7 +175,7 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
                                                           std::chrono::duration_cast<std::chrono::milliseconds>(queueTimeout_).count()));
         }
       } 
-      
+      tpacket=0;
     }
     else{
       continue;

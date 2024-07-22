@@ -86,9 +86,35 @@ CRTControllerModule::do_conf(const data_t& conf_as_json)
        loadconfig_json(usb_serial, pmt_board, hv_setting, dac_threshold, use_maroc2gain, gate, pipedelay, trigger_mode, force_trigger, gain);
      }
    }
+   char indir[] = "/data0";
+  
+   int PMTINI, PMTFIN;
+  
+   std::cout << "Killing previous readout processes, if any.\n";
+   string cmd = "killall crt_readout";
+   system(cmd.c_str());
+
+   std::cout << "Removing all existing message queues, if they exist.\n";
+   cmd = "ipcrm -Q 0x0000270f -Q 0x0000271e -Q 0x00002713 -Q 0x00002726 -Q 0x0000271d";
+   //With the usb numbers we're using, the queues will have keys 9999, 10003, 10013, 10014, 10022
+   system(cmd.c_str());
+
+   cmd = "crt_readout -d 1 &";
+   system(cmd.c_str());
+
+   sleep(1); //Need time to be sure readout processes are started
+
+   PMTINI = 1;
+   PMTFIN = dunedaq::crtmodules::getnumpmt();
+
+   dunedaq::crtmodules::initializeboard("auto",1000,PMTINI,PMTFIN,indir);
+   int res = dunedaq::crtmodules::eventbuilder("auto",PMTINI,PMTFIN,indir);
+
+   dunedaq::crtmodules::starttakedata(PMTINI,PMTFIN);
+ 
  }
 
-  //std::cout << "HEY!!! WE CONFIGURED!!! " << m_some_configured_value << std::endl;
+ std::cout << "Exiting do_conf() method\n";
 
 }
 
@@ -96,32 +122,7 @@ void
 CRTControllerModule::do_start(const data_t&)
 {
   std::cout << "In do_start() method\n";
-  char indir[] = "/data0";
-  
-  int PMTINI, PMTFIN;
-  
-  std::cout << "Killing previous readout processes, if any.\n";
-  string cmd = "killall crt_readout";
-  system(cmd.c_str());
-
-  std::cout << "Removing all existing message queues, if they exist.\n";
-  cmd = "ipcrm -Q 0x0000270f -Q 0x0000271e -Q 0x00002713 -Q 0x00002726 -Q 0x0000271d";
-  //With the usb numbers we're using, the queues will have keys 9999, 10003, 10013, 10014, 10022
-  system(cmd.c_str());
-
-  cmd = "crt_readout -d 1 &";
-  system(cmd.c_str());
-
-  sleep(1); //Need time to be sure readout processes are started
-
-  PMTINI = 1;
-  PMTFIN = dunedaq::crtmodules::getnumpmt();
-
-  dunedaq::crtmodules::initializeboard("auto",1000,PMTINI,PMTFIN,indir);
-  int res = dunedaq::crtmodules::eventbuilder("auto",PMTINI,PMTFIN,indir);
-
-  dunedaq::crtmodules::starttakedata(PMTINI,PMTFIN);
-  
+ 
   std::cout << "Exiting do_start() method\n";
 }
 
@@ -129,12 +130,6 @@ void
 CRTControllerModule::do_stop(const data_t&)
 {
   std::cout << "In do_stop() method\n";
-  char indir[] = "/data0";
-
-  stopallboards(indir);
-
-  string cmd = "ipcrm -Q 0x0000270f -Q 0x0000271e -Q 0x00002713 -Q 0x00002726 -Q 0x0000271d";
-  system(cmd.c_str());
 
   std::cout << "Exiting do_stop() method\n"; 
 }
@@ -142,6 +137,15 @@ CRTControllerModule::do_stop(const data_t&)
 void
 CRTControllerModule::do_scrap(const data_t&)
 {
+  std::cout << "In do_scrap() method\n";
+  char indir[] = "/data0";
+
+  stopallboards(indir);
+
+  string cmd = "ipcrm -Q 0x0000270f -Q 0x0000271e -Q 0x00002713 -Q 0x00002726 -Q 0x0000271d";
+  system(cmd.c_str());
+
+  std::cout << "Exiting do_scrap() method\n";
 }
 
 } // namespace dunedaq::crtmodules

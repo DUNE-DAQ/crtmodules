@@ -69,6 +69,11 @@ void CRTInterface::StopDatataking()
   //TLOG(TLVL_INFO, "CRTInterface")
   std::cout << "CRTInterface: stopping data-taking\n";
   errno = 0;
+
+  //Reset tpacket and state in case we start a new run without scrapping
+  CRT::ClearTpacket();
+  state = (CRT_FIRST_FILE | CRT_WAIT);
+
   if(-1 == inotify_rm_watch(inotifyfd, inotify_watchfd))
     //TLOG(TLVL_WARNING, "CRTInterface")
     std::cout << "StopDatataking: " << strerror(errno);

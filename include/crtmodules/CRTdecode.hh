@@ -33,6 +33,8 @@ unsigned int raw2cook(char * const cooked_data,
                       const int baselines[64 /*maxModules*/][64 /*numChannels*/],
 		      uint64_t &tpacket);
 
+
+void ClearTpacket();
 }
 
 #endif // CRTDECODE_HH
