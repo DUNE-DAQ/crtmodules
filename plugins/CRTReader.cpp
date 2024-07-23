@@ -134,12 +134,18 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
       uint32_t lowertime = *(uint32_t*)(readout_buffer_+28); //The 62.5 MHz counter timestamp is a 32-bit number after the first 28 bytes
       uint16_t module_num = *(uint16_t*)(readout_buffer_+18);//The module number is a 16-bit number after the first 18 bytes
       uint64_t tpacket = hardware_interface_->GetTpacket();
+      
+      //Still waiting for a tpacket to give us the system time
       if(tpacket == 0){continue;}
+
+      //Got a tpacket, let's set the run start time as a reference
+      //Run start time is an estimate of the time we most recently received a sync signal
       if(!gotRunStartTime && tpacket != 0){
         run_start_time = tpacket*62500000-lowertime;
 	TLOG(TLVL_INFO) << get_name() << ": Run start time set to " << run_start_time << " ticks";
         gotRunStartTime = true;
       }
+
       if(lowertime_per_mod[module_num] == 0){ //First event in each board
         lowertime_per_mod[module_num] = lowertime;
         full_timestamp = run_start_time + (uint64_t)lowertime;
@@ -162,11 +168,16 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
       //std::memcpy((char*)(&(to_send.crtdata)),&readout_buffer_,288);
       bool successfullyWasSent = false;
       while (!successfullyWasSent && running_flag.load()) {
+	int retry_counter = 0;
         TLOG_DEBUG(TLVL_CRTREADER) << get_name() << ": Pushing CRT frame onto the output queue";
         successfullyWasSent = outputQueue_->try_send(std::move(to_send), queueTimeout_);
         ++sentCount;
         if ( !successfullyWasSent ) {
-          std::ostringstream oss_warn;
+	  retry_counter++;
+	  TLOG(TLVL_INFO) << get_name() << "CRT Frame not successfully sent, retry attempt " << retry_counter;
+	  TLOG(TLVL_INFO) << "CRTTypeAdapter information: First timestamp: " << to_send.crtdata.get_timestamp() << ", module: " << to_send.crtdata.get_module();
+
+	  std::ostringstream oss_warn;
           oss_warn << "push to output queue \"" << outputQueue_->get_name() << "\"";
           ers::warning(dunedaq::iomanager::TimeoutExpired(
                                                           ERS_HERE,
