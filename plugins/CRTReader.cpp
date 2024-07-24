@@ -173,8 +173,8 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
         successfullyWasSent = outputQueue_->try_send(std::move(to_send), queueTimeout_);
         ++sentCount;
         if ( !successfullyWasSent ) {
-	  retry_counter++;
-	  TLOG(TLVL_INFO) << get_name() << "CRT Frame not successfully sent, retry attempt " << retry_counter;
+	  //retry_counter++;
+	  //TLOG(TLVL_INFO) << get_name() << "CRT Frame not successfully sent, retry attempt " << retry_counter;
 	  TLOG(TLVL_INFO) << "CRTTypeAdapter information: First timestamp: " << to_send.crtdata.get_timestamp() << ", module: " << to_send.crtdata.get_module();
 
 	  std::ostringstream oss_warn;
@@ -184,8 +184,9 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
                                                           get_name(),
                                                           oss_warn.str(),
                                                           std::chrono::duration_cast<std::chrono::milliseconds>(queueTimeout_).count()));
+	  break; //quick fix to just break if the try_send failed
         }
-      } 
+      }
       tpacket=0;
     }
     else{
