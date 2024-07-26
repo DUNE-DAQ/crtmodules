@@ -75,6 +75,7 @@ private:
 
   uint32_t lowertime_per_mod[32] = {0};
   uint64_t syncs_per_mod[32] = {0};
+  uint64_t missed_syncs[32]={0};
   const uint64_t sync_length = 437500000; //7 seconds in clock ticks
   const uint32_t rolloverThreshold = 5000000; //May want to tune
   uint64_t full_timestamp = 0;

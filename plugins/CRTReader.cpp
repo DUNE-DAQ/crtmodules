@@ -124,13 +124,20 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_work() method";
   int sentCount = 0;
+  int droppedCount = 0;
   bool gotRunStartTime = false;
   uint64_t run_start_time = 0;
-  
+  uint64_t total_frames = 0; //testing
+
   while (running_flag.load()) {
     size_t bytes_read = 0;
     hardware_interface_->FillBuffer(readout_buffer_, &bytes_read);
     if(bytes_read>0){
+
+      //testing
+      if(total_frames%1000 == 0){
+        TLOG(TLVL_INFO) << "CRT got " << total_frames << "th event from FillBuffer(), with " << bytes_read << "bytes";
+      }
       uint32_t lowertime = *(uint32_t*)(readout_buffer_+28); //The 62.5 MHz counter timestamp is a 32-bit number after the first 28 bytes
       uint16_t module_num = *(uint16_t*)(readout_buffer_+18);//The module number is a 16-bit number after the first 18 bytes
       uint64_t tpacket = hardware_interface_->GetTpacket();
@@ -151,14 +158,32 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
         full_timestamp = run_start_time + (uint64_t)lowertime;
       }
       else{ //Any other event
+
+	//If the counter is far enough past the point where we should have gotten a sync
+	//assume we've missed it, and count it here to be re-added later
+	if(lowertime > (1 + missed_syncs[module_num])*sync_length + 12500000){ //12500000 ticks = 0.2 seconds
+	  missed_syncs[module_num]++;
+	  TLOG(TLVL_INFO) << "CRT module " << module_num << " missed a sync (lowertime is " << lowertime <<" ticks), will try to re-add it when a new one is received.";
+	}
+
+	//If the counter has decreased (within some tolerance), assume this module has received a sync signal
         if(lowertime + rolloverThreshold < lowertime_per_mod[module_num]){
-          syncs_per_mod[module_num]++;
+          syncs_per_mod[module_num] += (1+missed_syncs[module_num]);
+	  if(missed_syncs[module_num] > 0){
+	    TLOG(TLVL_INFO) << missed_syncs[module_num] << " missed sync(s) added back to CRT module " << module_num;
+	    missed_syncs[module_num] = 0;
+	  }
         }
+
+
         full_timestamp = run_start_time + (uint64_t)lowertime + syncs_per_mod[module_num]*sync_length;
         lowertime_per_mod[module_num] = lowertime;
+      
       }
       const uint64_t daq_header_ts = full_timestamp;
       std::memcpy(readout_buffer_+8,&daq_header_ts,8); //Copy correct timestamp into the frame
+
+      //Building and sending the CRTFrame
       fdreadoutlibs::types::CRTTypeAdapter to_send;
       char* data = reinterpret_cast<char*>(&(to_send.crtdata));
       for(int k=0;k<288;k++){
@@ -166,28 +191,24 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
         //to_send.data[k] = *(char*)(readout_buffer_+k);
       }
       //std::memcpy((char*)(&(to_send.crtdata)),&readout_buffer_,288);
+      
+      //testing
+      if(total_frames%1000 == 0){
+        TLOG(TLVL_INFO) << get_name() <<": Built " << total_frames << "th CRT frame - Module: " << to_send.crtdata.get_module() << ", timestamp: " << to_send.get_timestamp();
+      }
+     
+      //Send frame to queue, track failed sends but don't retry 
       bool successfullyWasSent = false;
-      while (!successfullyWasSent && running_flag.load()) {
-	int retry_counter = 0;
-        TLOG_DEBUG(TLVL_CRTREADER) << get_name() << ": Pushing CRT frame onto the output queue";
-        successfullyWasSent = outputQueue_->try_send(std::move(to_send), queueTimeout_);
-        ++sentCount;
-        if ( !successfullyWasSent ) {
-	  //retry_counter++;
-	  //TLOG(TLVL_INFO) << get_name() << "CRT Frame not successfully sent, retry attempt " << retry_counter;
-	  TLOG(TLVL_INFO) << "CRTTypeAdapter information: First timestamp: " << to_send.crtdata.get_timestamp() << ", module: " << to_send.crtdata.get_module();
+      TLOG_DEBUG(TLVL_CRTREADER) << get_name() << ": Pushing CRT frame onto the output queue";
+      successfullyWasSent = outputQueue_->try_send(std::move(to_send), queueTimeout_);
+      if(successfullyWasSent){++sentCount;}
+      if (!successfullyWasSent) {
+	++droppedCount;
+	TLOG(TLVL_INFO) << get_name() << "CRT Frame from module " << module_num << " dropped, total dropped frames:" << droppedCount;
 
-	  std::ostringstream oss_warn;
-          oss_warn << "push to output queue \"" << outputQueue_->get_name() << "\"";
-          ers::warning(dunedaq::iomanager::TimeoutExpired(
-                                                          ERS_HERE,
-                                                          get_name(),
-                                                          oss_warn.str(),
-                                                          std::chrono::duration_cast<std::chrono::milliseconds>(queueTimeout_).count()));
-	  break; //quick fix to just break if the try_send failed
-        }
       }
       tpacket=0;
+      total_frames++;
     }
     else{
       continue;
