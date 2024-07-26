@@ -45,6 +45,8 @@ public:
    */
   explicit CRTReader(const std::string& name);
 
+  void get_info(opmonlib::InfoCollector&, int /*level*/) override;
+
   CRTReader(const CRTReader&) = delete;            ///< CRTReader is not copy-constructible
   CRTReader& operator=(const CRTReader&) = delete; ///< CRTReader is not copy-assignable
   CRTReader(CRTReader&&) = delete;                 ///< CRTReader is not move-constructible
@@ -79,6 +81,13 @@ private:
   const uint64_t sync_length = 437500000; //7 seconds in clock ticks
   const uint32_t rolloverThreshold = 5000000; //May want to tune
   uint64_t full_timestamp = 0;
+
+  //Metrics
+  std::atomic<int64_t> m_frames_built {0};
+  std::atomic<int32_t> m_frames_dropped {0};
+  std::atomic<int32_t> m_syncs_missed {0};
+  std::atomic<int64_t> m_bytes_from_file {0};
+
 };
 } // namespace crtmodules
 } // namespace dunedaq

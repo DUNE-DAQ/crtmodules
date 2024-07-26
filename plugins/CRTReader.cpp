@@ -10,6 +10,9 @@
 #include "CRTReader.hpp"
 #include "CommonIssues.hpp"
 
+#include "crtmodules/crtreader/Nljs.hpp"
+#include "crtmodules/crtreaderinfo/InfoNljs.hpp"
+
 #include "appfwk/DAQModuleHelper.hpp"
 #include "iomanager/IOManager.hpp"
 #include "logging/Logging.hpp"
@@ -133,7 +136,7 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
     size_t bytes_read = 0;
     hardware_interface_->FillBuffer(readout_buffer_, &bytes_read);
     if(bytes_read>0){
-
+      m_bytes_from_file += bytes_read;
       //testing
       if(total_frames%1000 == 0){
         TLOG(TLVL_INFO) << "CRT got " << total_frames << "th event from FillBuffer(), with " << bytes_read << "bytes";
@@ -164,6 +167,7 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
 	if(lowertime > (1 + missed_syncs[module_num])*sync_length + 12500000){ //12500000 ticks = 0.2 seconds
 	  missed_syncs[module_num]++;
 	  TLOG(TLVL_INFO) << "CRT module " << module_num << " missed a sync (lowertime is " << lowertime <<" ticks), will try to re-add it when a new one is received.";
+	  m_syncs_missed++;
 	}
 
 	//If the counter has decreased (within some tolerance), assume this module has received a sync signal
@@ -196,6 +200,7 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
       if(total_frames%1000 == 0){
         TLOG(TLVL_INFO) << get_name() <<": Built " << total_frames << "th CRT frame - Module: " << to_send.crtdata.get_module() << ", timestamp: " << to_send.get_timestamp();
       }
+      m_frames_built++;
      
       //Send frame to queue, track failed sends but don't retry 
       bool successfullyWasSent = false;
@@ -203,7 +208,8 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
       successfullyWasSent = outputQueue_->try_send(std::move(to_send), queueTimeout_);
       if(successfullyWasSent){++sentCount;}
       if (!successfullyWasSent) {
-	++droppedCount;
+	droppedCount++;
+	m_frames_dropped++;
 	TLOG(TLVL_INFO) << get_name() << "CRT Frame from module " << module_num << " dropped, total dropped frames:" << droppedCount;
 
       }
@@ -216,7 +222,18 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
   }
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_work() method";
 }
-  
+
+void
+CRTReader::get_info(opmonlib::InfoCollector& ci, int /* level */){
+  crtreaderinfo::Info info;
+
+  info.frames_built = m_frames_built.exchange(0);
+  info.bytes_from_file = m_bytes_from_file.exchange(0);
+  info.frames_dropped = m_frames_dropped;
+  info.syncs_missed = m_syncs_missed;
+  ci.add(info);
+}
+
 } // namespace fdreadoutmodules
 } // namespace dunedaq
 

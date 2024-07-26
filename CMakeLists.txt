@@ -31,6 +31,7 @@ find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 daq_codegen(crtreader.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2)
 daq_codegen(crtcontrollermodule.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2)
 daq_codegen(crtcontrollermoduleinfo.jsonnet DEP_PKGS opmonlib TEMPLATES opmonlib/InfoStructs.hpp.j2 opmonlib/InfoNljs.hpp.j2)
+daq_codegen(crtreaderinfo.jsonnet DEP_PKGS opmonlib TEMPLATES opmonlib/InfoStructs.hpp.j2 opmonlib/InfoNljs.hpp.j2)
 
 ##############################################################################
 
