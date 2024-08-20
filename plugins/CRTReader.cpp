@@ -151,8 +151,10 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
       //Got a tpacket, let's set the run start time as a reference
       //Run start time is an estimate of the time we most recently received a sync signal
       if(!gotRunStartTime && tpacket != 0){
-        run_start_time = tpacket*62500000-lowertime;
-	TLOG(TLVL_INFO) << get_name() << ": Run start time set to " << run_start_time << " ticks";
+	TLOG(TLVL_INFO) << "Got a tpacket: " << tpacket << ", with lowertime " << lowertime << ". This is " << lowertime/62500000 << " seconds after the sync.";
+	uint32_t sync_offset = uint32_t(lowertime/62500000);
+	run_start_time = (tpacket - sync_offset)*62500000;
+	TLOG(TLVL_INFO) << get_name() << ": Run start time set to " << run_start_time << " ticks (" << run_start_time/62500000 << " seconds)";
         gotRunStartTime = true;
       }
 
