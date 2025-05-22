@@ -11,7 +11,7 @@
 #include "CRTControllerModule.hpp"
 
 #include "crtmodules/crtcontrollermodule/Nljs.hpp"
-#include "crtmodules/crtcontrollermoduleinfo/InfoNljs.hpp"
+//#include "crtmodules/crtcontrollermoduleinfo/InfoNljs.hpp"
 
 #include "startallboards.cc"
 #include "stopallboards.cc"
@@ -32,18 +32,18 @@ CRTControllerModule::CRTControllerModule(const std::string& name)
 }
 
 void
-CRTControllerModule::init(const data_t& /* structured args */)
+CRTControllerModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mfcg)
 {}
 
-void
-CRTControllerModule::get_info(opmonlib::InfoCollector& ci, int /* level */)
-{
-  crtcontrollermoduleinfo::Info info;
-  info.total_amount = m_total_amount;
-  info.amount_since_last_get_info_call = m_amount_since_last_get_info_call.exchange(0);
+// void
+// CRTControllerModule::get_info(opmonlib::InfoCollector& ci, int /* level */)
+// {
+//   crtcontrollermoduleinfo::Info info;
+//   info.total_amount = m_total_amount;
+//   info.amount_since_last_get_info_call = m_amount_since_last_get_info_call.exchange(0);
 
-  ci.add(info);
-}
+//   ci.add(info);
+// }
 
 void
 CRTControllerModule::do_conf(const data_t& conf_as_json)

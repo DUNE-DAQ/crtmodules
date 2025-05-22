@@ -11,9 +11,9 @@
 #include "CommonIssues.hpp"
 
 #include "crtmodules/crtreader/Nljs.hpp"
-#include "crtmodules/crtreaderinfo/InfoNljs.hpp"
+//#include "crtmodules/crtreaderinfo/InfoNljs.hpp"
 
-#include "appfwk/DAQModuleHelper.hpp"
+//#include "appfwk/DAQModuleHelper.hpp"
 #include "iomanager/IOManager.hpp"
 #include "logging/Logging.hpp"
 
@@ -30,7 +30,7 @@
 #define TLVL_CRTREADER 15
 
 namespace dunedaq {
-DUNE_DAQ_TYPESTRING(dunedaq::fdreadoutlibs::types::CRTTypeAdapter, "CRTFrame")
+DUNE_DAQ_TYPESTRING(dunedaq::fdreadoutlibs::types::CRTBernTypeAdapter, "CRTFrame")
 namespace crtmodules{
 
 CRTReader::CRTReader(const std::string& name)
@@ -46,24 +46,24 @@ CRTReader::CRTReader(const std::string& name)
 }
 
 void
-CRTReader::init(const nlohmann::json& iniobj)
+CRTReader::init(const std::shared_ptr<appfwk::ConfigurationManager> mfcg)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering init() method";
 
-  auto conn_refs = appfwk::connection_refs(iniobj);
+  //auto conn_refs = appfwk::connection_refs(iniobj);
   std::string q_uid = "crt_stream";
-  for(const auto& qi : conn_refs){
-
-    if(qi.name.rfind("output",0) == 0) {
-      TLOG_DEBUG(TLVL_CRTREADER) << ": CRTReader output queue is " << qi.uid;
-      q_uid = qi.uid;
-    } else {
-      continue;      
-    }
-  }
+  //for(const auto& qi : conn_refs){
+//
+  //  if(qi.name.rfind("output",0) == 0) {
+  //    TLOG_DEBUG(TLVL_CRTREADER) << ": CRTReader output queue is " << qi.uid;
+  //    q_uid = qi.uid;
+  //  } else {
+  //    continue;      
+  //  }
+  //}
 
   try {    
-    outputQueue_ = get_iom_sender<fdreadoutlibs::types::CRTTypeAdapter>(q_uid);
+    outputQueue_ = get_iom_sender<fdreadoutlibs::types::CRTBernTypeAdapter>(q_uid);
   } catch (const ers::Issue& excpt) {
     throw InvalidQueueFatalError(ERS_HERE, get_name(), "crt_stream", excpt);
   }
@@ -151,10 +151,10 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
       //Got a tpacket, let's set the run start time as a reference
       //Run start time is an estimate of the time we most recently received a sync signal
       if(!gotRunStartTime && tpacket != 0){
-	TLOG(TLVL_INFO) << "Got a tpacket: " << tpacket << ", with lowertime " << lowertime << ". This is " << lowertime/62500000 << " seconds after the sync.";
-	uint32_t sync_offset = uint32_t(lowertime/62500000);
-	run_start_time = (tpacket - sync_offset)*62500000;
-	TLOG(TLVL_INFO) << get_name() << ": Run start time set to " << run_start_time << " ticks (" << run_start_time/62500000 << " seconds)";
+        TLOG(TLVL_INFO) << "Got a tpacket: " << tpacket << ", with lowertime " << lowertime << ". This is " << lowertime/62500000 << " seconds after the sync.";
+        uint32_t sync_offset = uint32_t(lowertime/62500000);
+        run_start_time = (tpacket - sync_offset)*62500000;
+        TLOG(TLVL_INFO) << get_name() << ": Run start time set to " << run_start_time << " ticks (" << run_start_time/62500000 << " seconds)";
         gotRunStartTime = true;
       }
 
@@ -190,17 +190,17 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
       std::memcpy(readout_buffer_+8,&daq_header_ts,8); //Copy correct timestamp into the frame
 
       //Building and sending the CRTFrame
-      fdreadoutlibs::types::CRTTypeAdapter to_send;
-      char* data = reinterpret_cast<char*>(&(to_send.crtdata));
+      fdreadoutlibs::types::CRTBernTypeAdapter to_send;
+      char* data = reinterpret_cast<char*>(&(to_send.data));
       for(int k=0;k<288;k++){
         std::memcpy(data+k,readout_buffer_+k,1);
         //to_send.data[k] = *(char*)(readout_buffer_+k);
       }
-      //std::memcpy((char*)(&(to_send.crtdata)),&readout_buffer_,288);
+      //std::memcpy((char*)(&(to_send.data)),&readout_buffer_,288);
       
       //testing
       if(total_frames%1000 == 0){
-        TLOG(TLVL_INFO) << get_name() <<": Built " << total_frames << "th CRT frame - Module: " << to_send.crtdata.get_module() << ", timestamp: " << to_send.get_timestamp();
+        TLOG(TLVL_INFO) << get_name() <<": Built " << total_frames << "th CRT frame - Module: " /*<< to_send.data.get_module()*/ << ", timestamp: " << to_send.get_timestamp();
       }
       m_frames_built++;
      
@@ -225,16 +225,16 @@ CRTReader::do_work(std::atomic<bool>& running_flag)
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_work() method";
 }
 
-void
-CRTReader::get_info(opmonlib::InfoCollector& ci, int /* level */){
-  crtreaderinfo::Info info;
+// void
+// CRTReader::get_info(opmonlib::InfoCollector& ci, int /* level */){
+//   crtreaderinfo::Info info;
 
-  info.frames_built = m_frames_built.exchange(0);
-  info.bytes_from_file = m_bytes_from_file.exchange(0);
-  info.frames_dropped = m_frames_dropped;
-  info.syncs_missed = m_syncs_missed;
-  ci.add(info);
-}
+//   info.frames_built = m_frames_built.exchange(0);
+//   info.bytes_from_file = m_bytes_from_file.exchange(0);
+//   info.frames_dropped = m_frames_dropped;
+//   info.syncs_missed = m_syncs_missed;
+//   ci.add(info);
+// }
 
 } // namespace fdreadoutmodules
 } // namespace dunedaq

@@ -24,9 +24,9 @@ class CRTControllerModule : public dunedaq::appfwk::DAQModule
 public:
   explicit CRTControllerModule(const std::string& name);
 
-  void init(const data_t&) override;
+  void init(const std::shared_ptr<appfwk::ConfigurationManager> mfcg) override;
 
-  void get_info(opmonlib::InfoCollector&, int /*level*/) override;
+  //void get_info(opmonlib::InfoCollector&, int /*level*/) override;
 
   CRTControllerModule(const CRTControllerModule&) = delete;
   CRTControllerModule& operator=(const CRTControllerModule&) = delete;

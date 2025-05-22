@@ -16,7 +16,7 @@
 #include "crtmodules/CRTInterface.hh"
 #include "crtmodules/CRTdecode.hh"
 
-#include "fdreadoutlibs/CRTTypeAdapter.hpp"
+#include "fdreadoutlibs/CRTBernTypeAdapter.hpp"
 
 #include "appfwk/DAQModule.hpp"
 #include "iomanager/Receiver.hpp"
@@ -45,14 +45,14 @@ public:
    */
   explicit CRTReader(const std::string& name);
 
-  void get_info(opmonlib::InfoCollector&, int /*level*/) override;
+  //void get_info(opmonlib::InfoCollector&, int /*level*/) override;
 
   CRTReader(const CRTReader&) = delete;            ///< CRTReader is not copy-constructible
   CRTReader& operator=(const CRTReader&) = delete; ///< CRTReader is not copy-assignable
   CRTReader(CRTReader&&) = delete;                 ///< CRTReader is not move-constructible
   CRTReader& operator=(CRTReader&&) = delete;      ///< CRTReader is not move-assignable
 
-  void init(const nlohmann::json& iniobj) override;
+  void init(const std::shared_ptr<appfwk::ConfigurationManager> mfcg) override;
 
 private:
   // Commands
@@ -67,7 +67,7 @@ private:
 
   // Configuration
   //using sink_t = dunedaq::iomanager::SenderConcept<IntList>;
-  using sink_t = dunedaq::iomanager::SenderConcept<dunedaq::fdreadoutlibs::types::CRTTypeAdapter>;
+  using sink_t = dunedaq::iomanager::SenderConcept<dunedaq::fdreadoutlibs::types::CRTBernTypeAdapter>;
   std::shared_ptr<sink_t> outputQueue_;
   std::chrono::milliseconds queueTimeout_;
 
