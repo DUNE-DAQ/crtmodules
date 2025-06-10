@@ -92,9 +92,9 @@ fake_timestamp(uint64_t& timestamp)
  * @param frame Fake packet
  */
 void
-fake_adc(fddetdataformats::CRTGrenobleFrame& frame)
+fake_adc(fddetdataformats::CRTBernFrame& frame)
 {
-  for (int channel = 0; channel < fddetdataformats::CRTGrenobleFrame::s_num_channels; ++channel) {
+  for (int channel = 0; channel < fddetdataformats::CRTBernFrame::s_num_channels; ++channel) {
     frame.set_adc(channel, 0); 
   }
 }
@@ -106,7 +106,7 @@ fake_adc(fddetdataformats::CRTGrenobleFrame& frame)
  * @param timestamp Fake packet timestamp
  */
 void
-fake_data(fddetdataformats::CRTGrenobleFrame& frame, uint64_t& seq_id, uint64_t& timestamp)
+fake_data(fddetdataformats::CRTBernFrame& frame, uint64_t& seq_id, uint64_t& timestamp)
 {
   frame.daq_header.det_id = fake_det_id;
   frame.daq_header.crate_id = 1;
