@@ -20,6 +20,9 @@
 
 #include "fddetdataformats/CRTGrenobleFrame.hpp"
 
+#include "crtmodules/opmon/CRTGrenobleReaderModule.pb.h"
+
+
 namespace dunedaq {
 namespace crtmodules{
 
@@ -47,11 +50,6 @@ constexpr uint64_t fake_stream_id = 0;
  * @brief Fake packet block length
  */
 constexpr uint64_t fake_block_length = 0x382;
-
-/**
- * @brief Packet transmission rate in kHz
- */
-constexpr double packet_rate_khz = 1;
 
 // TODO (DTE): Hardcoded source ID
 constexpr uint64_t source_id = 100;
@@ -211,6 +209,10 @@ CRTGrenobleReaderModule::do_start(const nlohmann::json& /*startobj*/)
     source->acquire_callback();
   }
 
+  m_packet_count = 0;
+
+  m_t0 = std::chrono::high_resolution_clock::now();
+
   enable_flow();  
 
   //if (!m_callback_mode) {
@@ -224,6 +226,21 @@ CRTGrenobleReaderModule::do_stop(const nlohmann::json& /*stopobj*/)
   disable_flow();
 }
 
+void
+CRTGrenobleReaderModule::generate_opmon_data()
+{
+  opmon::CRTGrenobleReaderInfo i;
+
+  auto now = std::chrono::high_resolution_clock::now();
+  int new_packets = m_packet_count.exchange(0);
+  double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
+  m_t0 = now;
+
+  i.set_packet_rate_khz(new_packets / seconds / 1000.);
+
+  publish(std::move(i));
+}
+
 void 
 CRTGrenobleReaderModule::run_produce()
 {
@@ -233,13 +250,14 @@ CRTGrenobleReaderModule::run_produce()
   uint64_t seq_id = 0;
   uint64_t timestamp = 0;
 
-  datahandlinglibs::RateLimiter rate_limiter(packet_rate_khz);
+  datahandlinglibs::RateLimiter rate_limiter(m_configured_packet_rate_khz);
 
   while (m_run_marker.load()) {
     fake_data(frame, seq_id, timestamp); // TODO: To be filled by the CRT experts
 
     if (m_enable_flow.load()) [[likely]] {    
       handle_eth_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
+      ++m_packet_count;
     }
     
     rate_limiter.limit();    

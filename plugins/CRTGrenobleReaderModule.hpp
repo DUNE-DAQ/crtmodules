@@ -48,6 +48,8 @@ private:
   void do_stop(const nlohmann::json& obj);
   void do_scrap(const nlohmann::json& obj);
   
+  void generate_opmon_data() override;
+
   /**
    * @brief Raw data produce thread function
    */     
@@ -99,6 +101,21 @@ private:
   using sid_to_source_map_t = std::map<int, std::shared_ptr<SourceConcept>>;
   sid_to_source_map_t m_sources;    
 
+  /**
+   * @brief Configured packet transmission rate in kHz
+   */
+  double m_configured_packet_rate_khz{ 1 };
+    
+  /**
+   * @brief Counts packets since last opmon data generation
+   */
+  std::atomic<int> m_packet_count{ 0 };   
+
+  // RUN START T0
+  /**
+   * @brief Timestamp used to measure time between opmon reports
+   */   
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;      
 };
 } // namespace crtmodules
 } // namespace dunedaq

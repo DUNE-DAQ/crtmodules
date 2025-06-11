@@ -15,7 +15,7 @@
 #include "iomanager/Sender.hpp"
 #include "logging/Logging.hpp"
 
-//#include "crtmodules/opmon/SourceModel.pb.h"
+#include "crtmodules/opmon/SourceModel.pb.h"
 
 // #include "datahandlinglibs/utils/ReusableThread.hpp"
 #include "datahandlinglibs/DataMoveCallbackRegistry.hpp"
@@ -121,10 +121,10 @@ public:
     
   void generate_opmon_data() override {
 
-    // opmon::SourceInfo info;
-    // info.set_dropped_frames( m_dropped_packets.load() ); 
+    opmon::SourceInfo info;
+    info.set_dropped_frames( m_dropped_packets.load() ); 
 
-    // publish( std::move(info) );
+    publish( std::move(info) );
   }
   
 private:
