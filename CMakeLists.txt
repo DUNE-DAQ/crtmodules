@@ -8,7 +8,7 @@
 # https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/
 
 cmake_minimum_required(VERSION 3.12)
-project(crtmodules VERSION 1.0.1)
+project(crtmodules VERSION 2.0.0)
 
 find_package(daq-cmake REQUIRED)
 
