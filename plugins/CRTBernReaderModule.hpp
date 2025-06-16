@@ -104,7 +104,7 @@ private:
   /**
    * @brief Configured packet transmission rate in kHz
    */
-  double m_configured_packet_rate_khz{ 1 };
+  double m_configured_packet_rate_khz{ 10 };
     
   /**
    * @brief Counts packets since last opmon data generation

@@ -12,15 +12,17 @@
 
 #include "CreateSource.hpp"
 
+#include "crtmodules/opmon/CRTBernReaderModule.pb.h"
+
+#include "datahandlinglibs/utils/RateLimiter.hpp"
+
 #include "appmodel/DataReaderModule.hpp"
 
 #include "confmodel/QueueWithSourceId.hpp"
 
-#include "datahandlinglibs/utils/RateLimiter.hpp"
-
 #include "fddetdataformats/CRTBernFrame.hpp"
 
-#include "crtmodules/opmon/CRTBernReaderModule.pb.h"
+#include "detdataformats/DetID.hpp"
 
 namespace dunedaq {
 namespace crtmodules{
@@ -31,14 +33,9 @@ namespace crtmodules{
 constexpr uint64_t max_seq_id = 4095;
 
 /**
- * @brief Timestamp difference between packets
- */
-constexpr uint64_t timestamp_diff = 32 * 64;
-
-/**
  * @brief Fake packet detector ID
  */
-constexpr uint64_t fake_det_id = 3;
+constexpr uint8_t fake_det_id = (uint8_t)detdataformats::DetID::Subdetector::kVD_BernCRT;
 
 /**
  * @brief Fake packet stream ID
@@ -51,7 +48,7 @@ constexpr uint64_t fake_stream_id = 0;
 constexpr uint64_t fake_block_length = 0x382;
 
 // TODO (DTE): Hardcoded source ID
-constexpr uint64_t source_id = 100;
+constexpr uint64_t source_id = 1002;
   
 /**
  * @brief Calculate the next fake sequence ID for a packet
@@ -70,18 +67,10 @@ fake_sequence_id(uint64_t& seq_id)
 void
 fake_timestamp(uint64_t& timestamp)
 {
-  static bool first_packet = true;
-  if (first_packet) {
-    first_packet = false;
     auto time_now = std::chrono::system_clock::now().time_since_epoch();
     uint64_t current_time = // NOLINT (build/unsigned)
-      std::chrono::duration_cast<std::chrono::microseconds>(time_now).count();
-    // FIXME: where do I get the clockspeed from?
-    // ts_0 = (m_conf.clock_speed_hz / 100000) * current_time;
-    timestamp = 625 * current_time / 10;    
-  } else {
-    timestamp += timestamp_diff;
-  }
+    std::chrono::duration_cast<std::chrono::microseconds>(time_now).count();
+    timestamp = 625 * current_time / 10;
 }
 
 /**
@@ -105,7 +94,7 @@ fake_adc(fddetdataformats::CRTBernFrame& frame)
 void
 fake_data(fddetdataformats::CRTBernFrame& frame, uint64_t& seq_id, uint64_t& timestamp)
 {
-  frame.daq_header.det_id = fake_det_id;
+  frame.daq_header.det_id = fake_det_id & 0x3f; //6 bits for det id
   frame.daq_header.crate_id = 1;
   frame.daq_header.slot_id = 1;
   frame.daq_header.stream_id = fake_stream_id;
@@ -122,7 +111,7 @@ CRTBernReaderModule::CRTBernReaderModule(const std::string& name)
 {
   register_command("conf", &CRTBernReaderModule::do_conf);
   register_command("start", &CRTBernReaderModule::do_start);
-  register_command("stop_trigger_sources", &CRTBernReaderModule::do_stop);
+  register_command("stop", &CRTBernReaderModule::do_stop);
   register_command("scrap", &CRTBernReaderModule::do_scrap);
 }
 
