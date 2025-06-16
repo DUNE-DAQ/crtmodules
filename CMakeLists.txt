@@ -28,7 +28,7 @@ daq_protobuf_codegen(opmon/*.proto)
 
 # See https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/#daq_codegen
 
-daq_codegen(crtcontrollermodule.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2)
+#daq_codegen(crtcontrollermodule.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2)
 
 ##############################################################################
 
@@ -56,7 +56,7 @@ daq_add_python_bindings(*.cpp LINK_LIBRARIES ${PROJECT_NAME} ) # Any additional 
 
 # See https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/#daq_add_plugin
 
-daq_add_plugin(CRTControllerModule duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk) # Replace appfwk library with a more specific library when appropriate
+#daq_add_plugin(CRTControllerModule duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk) # Replace appfwk library with a more specific library when appropriate
 daq_add_plugin(CRTGrenobleReaderModule duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk fdreadoutlibs::fdreadoutlibs opmonlib::opmonlib)
 daq_add_plugin(CRTBernReaderModule duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk fdreadoutlibs::fdreadoutlibs opmonlib::opmonlib)
 
@@ -65,8 +65,8 @@ daq_add_plugin(CRTBernReaderModule duneDAQModule LINK_LIBRARIES crtmodules appfw
 
 # See https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/#daq_add_application
 SET_SOURCE_FILES_PROPERTIES( main.c PROPERTIES COMPILE_FLAGS "-Wno-pointer-sign -Wno-unused-parameter -Wno-unused-label -Wno-unused-but-set-variable -Wno-unused-function -Wno-return-type -Wno-format")
-daq_add_application(crt_readout main.c LINK_LIBRARIES -lusb-1.0 -lm -lrt) # Any libraries to link in not yet determined
-daq_add_application(startallboards startallboards.cxx LINK_LIBRARIES ) # Any libraries to link in not yet determined
+#daq_add_application(crt_readout main.c LINK_LIBRARIES -lusb-1.0 -lm -lrt) # Any libraries to link in not yet determined
+#daq_add_application(startallboards startallboards.cxx LINK_LIBRARIES ) # Any libraries to link in not yet determined
 
 ##############################################################################
 
