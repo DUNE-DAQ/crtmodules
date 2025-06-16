@@ -111,7 +111,7 @@ CRTBernReaderModule::CRTBernReaderModule(const std::string& name)
 {
   register_command("conf", &CRTBernReaderModule::do_conf);
   register_command("start", &CRTBernReaderModule::do_start);
-  register_command("stop", &CRTBernReaderModule::do_stop);
+  register_command("stop_trigger_sources", &CRTBernReaderModule::do_stop);
   register_command("scrap", &CRTBernReaderModule::do_scrap);
 }
 

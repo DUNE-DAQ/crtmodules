@@ -111,7 +111,7 @@ CRTGrenobleReaderModule::CRTGrenobleReaderModule(const std::string& name)
 {
   register_command("conf", &CRTGrenobleReaderModule::do_conf);
   register_command("start", &CRTGrenobleReaderModule::do_start);
-  register_command("stop", &CRTGrenobleReaderModule::do_stop);
+  register_command("stop_trigger_sources", &CRTGrenobleReaderModule::do_stop);
   register_command("scrap", &CRTGrenobleReaderModule::do_scrap);
 }
 
