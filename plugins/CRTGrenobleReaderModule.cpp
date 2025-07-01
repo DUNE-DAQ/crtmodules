@@ -201,6 +201,13 @@ CRTGrenobleReaderModule::do_start(const nlohmann::json& /*startobj*/)
 
   m_t0 = std::chrono::high_resolution_clock::now();
 
+  // Configure HW interface?
+  if (!m_run_marker.load()) {
+    set_running(true);
+  } else {
+    TLOG_DEBUG(5) << "Already running!";
+  }  
+
   enable_flow();  
 
   //if (!m_callback_mode) {
@@ -212,6 +219,18 @@ void
 CRTGrenobleReaderModule::do_stop(const nlohmann::json& /*stopobj*/)
 {
   disable_flow();
+
+  if (m_run_marker.load()) {
+    TLOG() << "Raising stop through variables!";
+    set_running(false);
+//  if (!m_callback_mode) {
+    while (!m_producer_thread.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+//  }      
+  } else {
+    TLOG_DEBUG(5) << "Already stopped!";
+  }  
 }
 
 void
