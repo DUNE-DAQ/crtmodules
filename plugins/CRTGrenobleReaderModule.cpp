@@ -129,91 +129,31 @@ tokenize(std::string const& str, const char delim, std::vector<std::string>& out
 void
 CRTGrenobleReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mfcg)
 {
-  // auto* mdal = mfcg->get_dal<appmodel::DataReaderModule>(get_name());
 
-  // if (mdal->get_outputs().empty()) {
-  //   auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE,
-  //                                                             "No outputs defined for CRT Grenoble reader in configuration.");
-  //   ers::fatal(err);
-  //   throw err;
-  // }
-      
-  // for (auto* con : mdal->get_outputs()) {
-  //   auto* queue = con->cast<confmodel::QueueWithSourceId>();
-  //   if (queue == nullptr) {
-  //     auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE, "Outputs are not of type QueueWithGeoId.");
-  //     ers::fatal(err);
-  //     throw err;
-  //   }
-
-  //   // Check for CB prefix indicating Callback use
-  //   const char delim = '_';
-  //   const std::string target = queue->UID();
-  //   std::vector<std::string> words;
-  //   tokenize(target, delim, words);
-
-  //   bool callback_mode = false; // TODO (DTE) : Make callback mode work?
-  //   if (words.front() == "cb") {
-  //     callback_mode = true;
-  //   }
-
-  //   auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
-  //   register_node(queue->UID(), ptr);
-  // }
 }
 
 void
 CRTGrenobleReaderModule::do_conf(const nlohmann::json& obj)
 {
-  // // Configure HW interface?
-  // if (!m_run_marker.load()) {
-  //   set_running(true);
-  // } else {
-  //   TLOG_DEBUG(5) << "Already running!";
-  // }  
+
 }
 
 void
 CRTGrenobleReaderModule::do_scrap(const nlohmann::json& /*obj*/)
 {
-//   if (m_run_marker.load()) {
-//     TLOG() << "Raising stop through variables!";
-//     set_running(false);
-// //  if (!m_callback_mode) {
-//     while (!m_producer_thread.get_readiness()) {
-//       std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//     }
-// //  }      
-//   } else {
-//     TLOG_DEBUG(5) << "Already stopped!";
-//   }  
+
 }
 
 void
 CRTGrenobleReaderModule::do_start(const nlohmann::json& /*startobj*/)
 {
-  // // Setup callbacks on all sourcemodels
-  // for (auto& [sourceid, source] : m_sources) {
-  //   source->acquire_callback();
-  // }
 
-  // m_packet_count = 0;
-
-  // m_t0 = std::chrono::high_resolution_clock::now();
-
-  // enable_flow();  
-
-  // // //if (!m_callback_mode) {
-  // //   m_producer_thread.set_work(&CRTGrenobleReaderModule::run_produce, this);
-  // // //}
 }
 
 void
 CRTGrenobleReaderModule::do_stop(const nlohmann::json& /*stopobj*/)
 {
-  // //TLOG() << "In CRTGrenobleReaderModule::do_stop, about to call disable_flow";
-  // disable_flow();
-  // TLOG() << "In CRTGrenobleReaderModule::do_stop, finished calling disable_flow";
+
 }
 
 void
