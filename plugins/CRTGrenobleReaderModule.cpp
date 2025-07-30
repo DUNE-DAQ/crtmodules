@@ -57,7 +57,7 @@ constexpr uint64_t source_id = 1001;
 void
 fake_sequence_id(uint64_t& seq_id)
 {
-  seq_id = seq_id == max_seq_id ? 0 : ++seq_id;
+  seq_id = (seq_id == max_seq_id ? 0 : seq_id+1);
 }
 
 /**
@@ -163,7 +163,7 @@ CRTGrenobleReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager
 }
 
 void
-CRTGrenobleReaderModule::do_conf(const nlohmann::json& obj)
+CRTGrenobleReaderModule::do_conf(const nlohmann::json& /*obj*/)
 {
   // Configure HW interface?
   if (!m_run_marker.load()) {
