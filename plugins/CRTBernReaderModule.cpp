@@ -244,7 +244,6 @@ CRTBernReaderModule::run_produce()
     fake_data(frame, seq_id, timestamp); // TODO: To be filled by the CRT experts
 
     if (m_enable_flow.load()) [[likely]] {   
-      TLOG() << frame.daq_header << std::endl; 
       handle_eth_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
       ++m_packet_count;
     }
