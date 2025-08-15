@@ -67,10 +67,10 @@ fake_sequence_id(uint64_t& seq_id)
 void
 fake_timestamp(uint64_t& timestamp)
 {
-    auto time_now = std::chrono::system_clock::now().time_since_epoch();
+    auto time_now = std::chrono::steady_clock::now().time_since_epoch();
     uint64_t current_time = // NOLINT (build/unsigned)
-    std::chrono::duration_cast<std::chrono::microseconds>(time_now).count();
-    timestamp = 625 * current_time / 10;
+    std::chrono::duration_cast<std::chrono::nanoseconds>(time_now).count();
+    timestamp = current_time / 16; // 625/10000 (same as 625*us/10)
 }
 
 /**
