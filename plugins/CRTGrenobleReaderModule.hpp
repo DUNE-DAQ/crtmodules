@@ -12,6 +12,7 @@
 #define CRTMODULES_PLUGINS_CRTGRENOBLEREADERMODULE_HPP_
 
 #include "appfwk/DAQModule.hpp"
+#include "utilities/ReusableThread.hpp"
 
 #include <memory>
 #include <map>
