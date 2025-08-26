@@ -163,7 +163,7 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mf
 }
 
 void
-CRTBernReaderModule::do_conf(const nlohmann::json& /*obj*/)
+CRTBernReaderModule::do_conf(const CommandData_t& /*obj*/)
 {
   // Configure HW interface?
   if (!m_run_marker.load()) {
@@ -174,7 +174,7 @@ CRTBernReaderModule::do_conf(const nlohmann::json& /*obj*/)
 }
 
 void
-CRTBernReaderModule::do_scrap(const nlohmann::json& /*obj*/)
+CRTBernReaderModule::do_scrap(const CommandData_t& /*obj*/)
 {
   if (m_run_marker.load()) {
     TLOG() << "Raising stop through variables!";
@@ -190,7 +190,7 @@ CRTBernReaderModule::do_scrap(const nlohmann::json& /*obj*/)
 }
 
 void
-CRTBernReaderModule::do_start(const nlohmann::json& /*startobj*/)
+CRTBernReaderModule::do_start(const CommandData_t& /*startobj*/)
 {
   // Setup callbacks on all sourcemodels
   for (auto& [sourceid, source] : m_sources) {
@@ -209,7 +209,7 @@ CRTBernReaderModule::do_start(const nlohmann::json& /*startobj*/)
 }
 
 void
-CRTBernReaderModule::do_stop(const nlohmann::json& /*stopobj*/)
+CRTBernReaderModule::do_stop(const CommandData_t& /*stopobj*/)
 {
   disable_flow();
 }
