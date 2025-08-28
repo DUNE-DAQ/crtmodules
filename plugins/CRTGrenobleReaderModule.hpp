@@ -100,7 +100,8 @@ private:
    * @brief Data sources
    */
   using sid_to_source_map_t = std::map<int, std::shared_ptr<SourceConcept>>;
-  sid_to_source_map_t m_sources;    
+  sid_to_source_map_t m_sources;
+  uint32_t m_source_id; // NOLINT(build/unsigned)
 
   /**
    * @brief Configured packet transmission rate in kHz
