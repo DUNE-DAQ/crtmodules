@@ -12,6 +12,7 @@
 #define CRTMODULES_PLUGINS_CRTGRENOBLEREADERMODULE_HPP_
 
 #include "appfwk/DAQModule.hpp"
+#include "utilities/ReusableThread.hpp"
 
 #include <memory>
 #include <map>
@@ -43,10 +44,10 @@ public:
 
 private:
   // Commands
-  void do_conf(const nlohmann::json& obj);
-  void do_start(const nlohmann::json& obj);
-  void do_stop(const nlohmann::json& obj);
-  void do_scrap(const nlohmann::json& obj);
+  void do_conf(const CommandData_t& obj);
+  void do_start(const CommandData_t& obj);
+  void do_stop(const CommandData_t& obj);
+  void do_scrap(const CommandData_t& obj);
   
   void generate_opmon_data() override;
 
@@ -99,7 +100,8 @@ private:
    * @brief Data sources
    */
   using sid_to_source_map_t = std::map<int, std::shared_ptr<SourceConcept>>;
-  sid_to_source_map_t m_sources;    
+  sid_to_source_map_t m_sources;
+  uint32_t m_source_id; // NOLINT(build/unsigned)
 
   /**
    * @brief Configured packet transmission rate in kHz

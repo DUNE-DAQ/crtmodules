@@ -47,9 +47,6 @@ constexpr uint64_t fake_stream_id = 0;
  */
 constexpr uint64_t fake_block_length = 0x382;
 
-// TODO (DTE): Hardcoded source ID
-constexpr uint64_t source_id = 1002;
-  
 /**
  * @brief Calculate the next fake sequence ID for a packet
  * @param seq_id Fake packet sequence ID
@@ -57,7 +54,7 @@ constexpr uint64_t source_id = 1002;
 void
 fake_sequence_id(uint64_t& seq_id)
 {
-  seq_id = seq_id == max_seq_id ? 0 : ++seq_id;
+  seq_id = (seq_id == max_seq_id ? 0 : seq_id+1);
 }
 
 /**
@@ -67,10 +64,10 @@ fake_sequence_id(uint64_t& seq_id)
 void
 fake_timestamp(uint64_t& timestamp)
 {
-    auto time_now = std::chrono::system_clock::now().time_since_epoch();
+    auto time_now = std::chrono::steady_clock::now().time_since_epoch();
     uint64_t current_time = // NOLINT (build/unsigned)
-    std::chrono::duration_cast<std::chrono::microseconds>(time_now).count();
-    timestamp = 625 * current_time / 10;
+    std::chrono::duration_cast<std::chrono::nanoseconds>(time_now).count();
+    timestamp = current_time / 16; // 625/10000 (same as 625*us/10)
 }
 
 /**
@@ -157,13 +154,14 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mf
       callback_mode = true;
     }
 
+    m_source_id = queue->get_source_id();
     auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
     register_node(queue->UID(), ptr);
   }
 }
 
 void
-CRTBernReaderModule::do_conf(const nlohmann::json& obj)
+CRTBernReaderModule::do_conf(const CommandData_t& /*obj*/)
 {
   // Configure HW interface?
   if (!m_run_marker.load()) {
@@ -174,7 +172,7 @@ CRTBernReaderModule::do_conf(const nlohmann::json& obj)
 }
 
 void
-CRTBernReaderModule::do_scrap(const nlohmann::json& /*obj*/)
+CRTBernReaderModule::do_scrap(const CommandData_t& /*obj*/)
 {
   if (m_run_marker.load()) {
     TLOG() << "Raising stop through variables!";
@@ -190,7 +188,7 @@ CRTBernReaderModule::do_scrap(const nlohmann::json& /*obj*/)
 }
 
 void
-CRTBernReaderModule::do_start(const nlohmann::json& /*startobj*/)
+CRTBernReaderModule::do_start(const CommandData_t& /*startobj*/)
 {
   // Setup callbacks on all sourcemodels
   for (auto& [sourceid, source] : m_sources) {
@@ -209,7 +207,7 @@ CRTBernReaderModule::do_start(const nlohmann::json& /*startobj*/)
 }
 
 void
-CRTBernReaderModule::do_stop(const nlohmann::json& /*stopobj*/)
+CRTBernReaderModule::do_stop(const CommandData_t& /*stopobj*/)
 {
   disable_flow();
 }
@@ -244,7 +242,6 @@ CRTBernReaderModule::run_produce()
     fake_data(frame, seq_id, timestamp); // TODO: To be filled by the CRT experts
 
     if (m_enable_flow.load()) [[likely]] {   
-      TLOG() << frame.daq_header << std::endl; 
       handle_eth_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
       ++m_packet_count;
     }
@@ -262,7 +259,7 @@ CRTBernReaderModule::handle_eth_payload(char* payload, std::size_t size)
   //auto* daq_header = reinterpret_cast<dunedaq::detdataformats::DAQEthHeader*>(payload);
   //auto src_id = m_stream_id_to_source_id[src_rx_q][(unsigned)daq_header->stream_id];
 
-  if ( auto src_it = m_sources.find(source_id); src_it != m_sources.end()) {
+  if ( auto src_it = m_sources.find(m_source_id); src_it != m_sources.end()) {
     src_it->second->handle_payload(payload, size);
   } else {
     // Really bad -> unexpeced StreamID in UDP Payload.
