@@ -21,7 +21,6 @@ hostname = os.uname().nodename
 ignored_logfile_problems = {
     "local-connection-server": [
         "errorlog: -",
-        r"Worker \(pid:\d+\) was sent SIGHUP"
     ],    
 }
 
