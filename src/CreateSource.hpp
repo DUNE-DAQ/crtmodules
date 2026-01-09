@@ -26,7 +26,7 @@ DUNE_DAQ_TYPESTRING(dunedaq::fdreadoutlibs::types::CRTGrenobleTypeAdapter, "CRTG
 namespace crtmodules {
 
 std::shared_ptr<SourceConcept>
-createSourceModel(const std::string& conn_uid, bool callback_mode)
+createSourceModel(const std::string& conn_uid)
 {
   auto datatypes = dunedaq::iomanager::IOManager::get()->get_datatypes(conn_uid);
   if (datatypes.size() != 1) {
@@ -40,12 +40,12 @@ createSourceModel(const std::string& conn_uid, bool callback_mode)
   if (raw_dt.find("CRTBernFrame") != std::string::npos) {
     auto source_model = std::make_shared<SourceModel<fdreadoutlibs::types::CRTBernTypeAdapter>>();
     source_model->set_sink_name(conn_uid);
-    source_model->set_sink(conn_uid, callback_mode);
+    source_model->set_sink(conn_uid);
     return source_model;
   } else if (raw_dt.find("CRTGrenobleFrame") != std::string::npos) {
     auto source_model = std::make_shared<SourceModel<fdreadoutlibs::types::CRTGrenobleTypeAdapter>>();
     source_model->set_sink_name(conn_uid);
-    source_model->set_sink(conn_uid, callback_mode);
+    source_model->set_sink(conn_uid);
     return source_model;
   }
 

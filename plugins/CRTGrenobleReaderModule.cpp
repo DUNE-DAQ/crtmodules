@@ -143,19 +143,8 @@ CRTGrenobleReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager
       throw err;
     }
 
-    // Check for CB prefix indicating Callback use
-    const char delim = '_';
-    const std::string target = queue->UID();
-    std::vector<std::string> words;
-    tokenize(target, delim, words);
-
-    bool callback_mode = false; // TODO (DTE) : Make callback mode work?
-    if (words.front() == "cb") {
-      callback_mode = true;
-    }
-
     m_source_id = queue->get_source_id();
-    auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
+    auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID());
     register_node(queue->UID(), ptr);
   }
 }
@@ -190,11 +179,6 @@ CRTGrenobleReaderModule::do_scrap(const CommandData_t& /*obj*/)
 void
 CRTGrenobleReaderModule::do_start(const CommandData_t& /*startobj*/)
 {
-  // Setup callbacks on all sourcemodels
-  for (auto& [sourceid, source] : m_sources) {
-    source->acquire_callback();
-  }
-
   m_packet_count = 0;
 
   m_t0 = std::chrono::high_resolution_clock::now();
