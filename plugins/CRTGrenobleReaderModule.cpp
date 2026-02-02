@@ -2,7 +2,7 @@
  * @file CRTGrenobleReaderModule.cpp
  *
  * Reads data from the HW then puts it in a queue
- * 
+ *
  * This is part of the DUNE DAQ Software Suite, copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
@@ -78,7 +78,7 @@ void
 fake_adc(fddetdataformats::CRTGrenobleFrame& frame)
 {
   for (int channel = 0; channel < fddetdataformats::CRTGrenobleFrame::s_num_channels; ++channel) {
-    frame.set_adc(channel, 0); 
+    frame.set_adc(channel, 0);
   }
 }
 
@@ -128,35 +128,17 @@ CRTGrenobleReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager
 {
   auto* mdal = mfcg->get_dal<appmodel::DataReaderModule>(get_name());
 
-  if (mdal->get_outputs().empty()) {
+  if (mdal->get_raw_data_callbacks().empty()) {
     auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE,
                                                               "No outputs defined for CRT Grenoble reader in configuration.");
     ers::fatal(err);
     throw err;
   }
-      
-  for (auto* con : mdal->get_outputs()) {
-    auto* queue = con->cast<confmodel::QueueWithSourceId>();
-    if (queue == nullptr) {
-      auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE, "Outputs are not of type QueueWithGeoId.");
-      ers::fatal(err);
-      throw err;
-    }
 
-    // Check for CB prefix indicating Callback use
-    const char delim = '_';
-    const std::string target = queue->UID();
-    std::vector<std::string> words;
-    tokenize(target, delim, words);
-
-    bool callback_mode = false; // TODO (DTE) : Make callback mode work?
-    if (words.front() == "cb") {
-      callback_mode = true;
-    }
-
-    m_source_id = queue->get_source_id();
-    auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
-    register_node(queue->UID(), ptr);
+  for (auto* con : mdal->get_raw_data_callbacks()) {
+    m_source_id = con->get_source_id();
+    auto ptr = m_sources[con->get_source_id()] = createSourceModel(con);
+    register_node(con->UID(), ptr);
   }
 }
 
@@ -168,7 +150,7 @@ CRTGrenobleReaderModule::do_conf(const CommandData_t& /*obj*/)
     set_running(true);
   } else {
     TLOG_DEBUG(5) << "Already running!";
-  }  
+  }
 }
 
 void
@@ -181,10 +163,10 @@ CRTGrenobleReaderModule::do_scrap(const CommandData_t& /*obj*/)
     while (!m_producer_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-//  }      
+//  }
   } else {
     TLOG_DEBUG(5) << "Already stopped!";
-  }  
+  }
 }
 
 void
@@ -197,9 +179,9 @@ CRTGrenobleReaderModule::do_start(const CommandData_t& /*startobj*/)
 
   m_packet_count = 0;
 
-  m_t0 = std::chrono::high_resolution_clock::now();
+  m_t0 = std::chrono::steady_clock::now();
 
-  enable_flow();  
+  enable_flow();
 
   //if (!m_callback_mode) {
     m_producer_thread.set_work(&CRTGrenobleReaderModule::run_produce, this);
@@ -217,7 +199,7 @@ CRTGrenobleReaderModule::generate_opmon_data()
 {
   opmon::CRTGrenobleReaderInfo i;
 
-  auto now = std::chrono::high_resolution_clock::now();
+  auto now = std::chrono::steady_clock::now();
   int new_packets = m_packet_count.exchange(0);
   double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
   m_t0 = now;
@@ -227,7 +209,7 @@ CRTGrenobleReaderModule::generate_opmon_data()
   publish(std::move(i));
 }
 
-void 
+void
 CRTGrenobleReaderModule::run_produce()
 {
   TLOG() << "Producer thread started..."; // TODO (DTE): Debug log instead
@@ -241,12 +223,12 @@ CRTGrenobleReaderModule::run_produce()
   while (m_run_marker.load()) {
     fake_data(frame, seq_id, timestamp); // TODO: To be filled by the CRT experts
 
-    if (m_enable_flow.load()) [[likely]] {    
+    if (m_enable_flow.load()) [[likely]] {
       handle_eth_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
       ++m_packet_count;
     }
-    
-    rate_limiter.limit();    
+
+    rate_limiter.limit();
   }
 
   TLOG() << "Producer thread joins... "; // TODO (DTE): Debug log instead
@@ -254,7 +236,7 @@ CRTGrenobleReaderModule::run_produce()
 
 void
 CRTGrenobleReaderModule::handle_eth_payload(char* payload, std::size_t size)
-{  
+{
   // Get DAQ Header and its StreamID
   //auto* daq_header = reinterpret_cast<dunedaq::detdataformats::DAQEthHeader*>(payload);
   //auto src_id = m_stream_id_to_source_id[src_rx_q][(unsigned)daq_header->stream_id];
@@ -272,7 +254,7 @@ CRTGrenobleReaderModule::handle_eth_payload(char* payload, std::size_t size)
   }
 }
 
-void 
+void
 CRTGrenobleReaderModule::set_running(bool should_run)
 {
   bool was_running = m_run_marker.exchange(should_run);
