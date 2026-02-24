@@ -1,6 +1,6 @@
 /**
- * @file CRTBernReaderModule.cpp 
- 
+ * @file CRTBernReaderModule.cpp
+
  * Reads data from the HW then puts it in a queue
  *
  * This is part of the DUNE DAQ Software Suite, copyright 2020.
@@ -78,7 +78,7 @@ void
 fake_adc(fddetdataformats::CRTBernFrame& frame)
 {
   for (int channel = 0; channel < fddetdataformats::CRTBernFrame::s_num_channels; ++channel) {
-    frame.set_adc(channel, 0); 
+    frame.set_adc(channel, 0);
   }
 }
 
@@ -128,35 +128,17 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mf
 {
   auto* mdal = mfcg->get_dal<appmodel::DataReaderModule>(get_name());
 
-  if (mdal->get_outputs().empty()) {
+  if (mdal->get_raw_data_callbacks().empty()) {
     auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE,
                                                               "No outputs defined for CRT Bern reader in configuration.");
     ers::fatal(err);
     throw err;
   }
-      
-  for (auto* con : mdal->get_outputs()) {
-    auto* queue = con->cast<confmodel::QueueWithSourceId>();
-    if (queue == nullptr) {
-      auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE, "Outputs are not of type QueueWithGeoId.");
-      ers::fatal(err);
-      throw err;
-    }
 
-    // Check for CB prefix indicating Callback use
-    const char delim = '_';
-    const std::string target = queue->UID();
-    std::vector<std::string> words;
-    tokenize(target, delim, words);
-
-    bool callback_mode = false; // TODO (DTE) : Make callback mode work?
-    if (words.front() == "cb") {
-      callback_mode = true;
-    }
-
-    m_source_id = queue->get_source_id();
-    auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
-    register_node(queue->UID(), ptr);
+  for (auto* con : mdal->get_raw_data_callbacks()) {
+    m_source_id = con->get_source_id();
+    auto ptr = m_sources[con->get_source_id()] = createSourceModel(con);
+    register_node(con->UID(), ptr);
   }
 }
 
@@ -168,7 +150,7 @@ CRTBernReaderModule::do_conf(const CommandData_t& /*obj*/)
     set_running(true);
   } else {
     TLOG_DEBUG(5) << "Already running!";
-  }  
+  }
 }
 
 void
@@ -181,10 +163,10 @@ CRTBernReaderModule::do_scrap(const CommandData_t& /*obj*/)
     while (!m_producer_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-//  }      
+//  }
   } else {
     TLOG_DEBUG(5) << "Already stopped!";
-  }  
+  }
 }
 
 void
@@ -195,7 +177,7 @@ CRTBernReaderModule::do_start(const CommandData_t& /*startobj*/)
     source->acquire_callback();
   }
 
-  enable_flow();  
+  enable_flow();
 
   m_packet_count = 0;
 
@@ -227,7 +209,7 @@ CRTBernReaderModule::generate_opmon_data()
   publish(std::move(i));
 }
 
-void 
+void
 CRTBernReaderModule::run_produce()
 {
   TLOG() << "Producer thread started..."; // TODO (DTE): Debug log instead
@@ -241,12 +223,12 @@ CRTBernReaderModule::run_produce()
   while (m_run_marker.load()) {
     fake_data(frame, seq_id, timestamp); // TODO: To be filled by the CRT experts
 
-    if (m_enable_flow.load()) [[likely]] {   
+    if (m_enable_flow.load()) [[likely]] {
       handle_eth_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
       ++m_packet_count;
     }
-    
-    rate_limiter.limit();    
+
+    rate_limiter.limit();
   }
 
   TLOG() << "Producer thread joins... "; // TODO (DTE): Debug log instead
@@ -254,7 +236,7 @@ CRTBernReaderModule::run_produce()
 
 void
 CRTBernReaderModule::handle_eth_payload(char* payload, std::size_t size)
-{  
+{
   // Get DAQ Header and its StreamID
   //auto* daq_header = reinterpret_cast<dunedaq::detdataformats::DAQEthHeader*>(payload);
   //auto src_id = m_stream_id_to_source_id[src_rx_q][(unsigned)daq_header->stream_id];
@@ -272,7 +254,7 @@ CRTBernReaderModule::handle_eth_payload(char* payload, std::size_t size)
   }
 }
 
-void 
+void
 CRTBernReaderModule::set_running(bool should_run)
 {
   bool was_running = m_run_marker.exchange(should_run);
