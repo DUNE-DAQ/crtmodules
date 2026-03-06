@@ -17,8 +17,12 @@
 #include "datahandlinglibs/utils/RateLimiter.hpp"
 
 #include "appmodel/DataReaderModule.hpp"
+#include "appmodel/SocketDetectorToDaqConnection.hpp"
+#include "appmodel/NWDetDataSender.hpp"
 
 #include "confmodel/QueueWithSourceId.hpp"
+#include "confmodel/DetectorStream.hpp"
+#include "confmodel/GeoId.hpp"
 
 #include "fddetdataformats/CRTBernFrame.hpp"
 
@@ -36,11 +40,6 @@ constexpr uint64_t max_seq_id = 4095;
  * @brief Fake packet detector ID
  */
 constexpr uint8_t fake_det_id = (uint8_t)detdataformats::DetID::Subdetector::kVD_BernCRT;
-
-/**
- * @brief Fake packet stream ID
- */
-constexpr uint64_t fake_stream_id = 0;
 
 /**
  * @brief Fake packet block length
@@ -87,14 +86,15 @@ fake_adc(fddetdataformats::CRTBernFrame& frame)
  * @param frame Fake packet
  * @param seq_id Fake packet sequence ID
  * @param timestamp Fake packet timestamp
+ * @param stream_id Fake packet stream ID
  */
 void
-fake_data(fddetdataformats::CRTBernFrame& frame, uint64_t& seq_id, uint64_t& timestamp)
+fake_data(fddetdataformats::CRTBernFrame& frame, uint64_t& seq_id, uint64_t& timestamp, uint32_t stream_id)
 {
   frame.daq_header.det_id = fake_det_id & 0x3f; //6 bits for det id
   frame.daq_header.crate_id = 1;
   frame.daq_header.slot_id = 1;
-  frame.daq_header.stream_id = fake_stream_id;
+  frame.daq_header.stream_id = stream_id;
   fake_sequence_id(seq_id);
   frame.daq_header.seq_id = seq_id;
   frame.daq_header.block_length = fake_block_length;
@@ -124,21 +124,43 @@ tokenize(std::string const& str, const char delim, std::vector<std::string>& out
 }
 
 void
-CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mfcg)
+CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg)
 {
-  auto* mdal = mfcg->get_dal<appmodel::DataReaderModule>(get_name());
+  auto* mdal = mcfg->get_dal<appmodel::DataReaderModule>(get_name());
+  
+  auto* d2d_conn = mdal->get_connections()[0]; // there's only 1 connection
+  auto* socket_d2d_conn = d2d_conn->cast<appmodel::SocketDetectorToDaqConnection>();
+  if (socket_d2d_conn == nullptr) {
+    auto err = datahandlinglibs::InitializationError(ERS_HERE, "Connection is not of type SocketDetectorToDaqConnection.");
+    ers::fatal(err);
+    throw err;
+  } 
+
+  for (auto nw_sender : socket_d2d_conn->get_net_senders()) {
+    if (nw_sender->is_disabled(*(mcfg->get_session()))) {
+      continue;
+    }
+
+    for (auto det_stream : nw_sender->get_streams()) {
+      if (det_stream->is_disabled(*(mcfg->get_session()))) {
+        continue;
+      }
+
+      m_fake_stream_ids[det_stream->get_source_id()] = det_stream->get_geo_id()->get_stream_id();
+    }    
+  }
 
   if (mdal->get_outputs().empty()) {
-    auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE,
+    auto err = datahandlinglibs::InitializationError(ERS_HERE,
                                                               "No outputs defined for CRT Bern reader in configuration.");
     ers::fatal(err);
     throw err;
   }
-      
+
   for (auto* con : mdal->get_outputs()) {
     auto* queue = con->cast<confmodel::QueueWithSourceId>();
     if (queue == nullptr) {
-      auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE, "Outputs are not of type QueueWithGeoId.");
+      auto err = datahandlinglibs::InitializationError(ERS_HERE, "Outputs are not of type QueueWithGeoId.");
       ers::fatal(err);
       throw err;
     }
@@ -149,12 +171,12 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mf
     std::vector<std::string> words;
     tokenize(target, delim, words);
 
-    bool callback_mode = false; // TODO (DTE) : Make callback mode work?
+    bool callback_mode = false;
     if (words.front() == "cb") {
-      callback_mode = true;
+      TLOG() << "CRTBernReaderModule does not support callbacks";
+      //callback_mode = true;
     }
 
-    m_source_id = queue->get_source_id();
     auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
     register_node(queue->UID(), ptr);
   }
@@ -177,11 +199,9 @@ CRTBernReaderModule::do_scrap(const CommandData_t& /*obj*/)
   if (m_run_marker.load()) {
     TLOG() << "Raising stop through variables!";
     set_running(false);
-//  if (!m_callback_mode) {
     while (!m_producer_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-//  }      
   } else {
     TLOG_DEBUG(5) << "Already stopped!";
   }  
@@ -191,19 +211,16 @@ void
 CRTBernReaderModule::do_start(const CommandData_t& /*startobj*/)
 {
   // Setup callbacks on all sourcemodels
-  for (auto& [sourceid, source] : m_sources) {
-    source->acquire_callback();
-  }
+  //for (auto& [_, source] : m_sources) {
+  //  source->acquire_callback();
+  //}
 
   enable_flow();  
 
   m_packet_count = 0;
-
   m_t0 = std::chrono::high_resolution_clock::now();
 
-  //if (!m_callback_mode) {
-    m_producer_thread.set_work(&CRTBernReaderModule::run_produce, this);
-  //}
+  m_producer_thread.set_work(&CRTBernReaderModule::run_produce, this);
 }
 
 void
@@ -239,37 +256,20 @@ CRTBernReaderModule::run_produce()
   datahandlinglibs::RateLimiter rate_limiter(m_configured_packet_rate_khz);
 
   while (m_run_marker.load()) {
-    fake_data(frame, seq_id, timestamp); // TODO: To be filled by the CRT experts
+    // Create a fake packet for each stream
+    for (const auto& [sid, source] : m_sources) {
+      fake_data(frame, seq_id, timestamp, m_fake_stream_ids[sid]); // TODO: To be filled by the CRT experts
+  
+      if (m_enable_flow.load()) [[likely]] {   
+        source->handle_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
+        ++m_packet_count;
+      }
 
-    if (m_enable_flow.load()) [[likely]] {   
-      handle_eth_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
-      ++m_packet_count;
+      rate_limiter.limit();    
     }
-    
-    rate_limiter.limit();    
   }
 
   TLOG() << "Producer thread joins... "; // TODO (DTE): Debug log instead
-}
-
-void
-CRTBernReaderModule::handle_eth_payload(char* payload, std::size_t size)
-{  
-  // Get DAQ Header and its StreamID
-  //auto* daq_header = reinterpret_cast<dunedaq::detdataformats::DAQEthHeader*>(payload);
-  //auto src_id = m_stream_id_to_source_id[src_rx_q][(unsigned)daq_header->stream_id];
-
-  if ( auto src_it = m_sources.find(m_source_id); src_it != m_sources.end()) {
-    src_it->second->handle_payload(payload, size);
-  } else {
-    // Really bad -> unexpeced StreamID in UDP Payload.
-    // This check is needed in order to avoid dynamically add thousands
-    // of Sources on the fly, in case the data corruption is extremely severe.
-    //if (m_num_unexid_frames.count(0) == 0) {
-    //  m_num_unexid_frames[0] = 0;
-    //}
-    //m_num_unexid_frames[0]++;
-  }
 }
 
 void 

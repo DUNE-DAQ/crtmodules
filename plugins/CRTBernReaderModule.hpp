@@ -40,7 +40,7 @@ public:
    * @brief Handles initialization on boot
    * @param mcfg DAQ configuration data
    */    
-  void init(const std::shared_ptr<appfwk::ConfigurationManager> mfcg) override;
+  void init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg) override;
 
 private:
   // Commands
@@ -55,13 +55,6 @@ private:
    * @brief Raw data produce thread function
    */     
   void run_produce();
-
-  /**
-   * @brief Forwards the payload to get processed
-   * @param payload Payload buffer
-   * @param size Payload size
-   */    
-  void handle_eth_payload(char* payload, std::size_t size);
 
   /**
    * @brief Sets run marker
@@ -96,12 +89,17 @@ private:
   utilities::ReusableThread m_producer_thread;  
 
   // Sinks (SourceConcepts)
+  using sid_to_source_map_t = std::map<uint32_t, std::shared_ptr<SourceConcept>>;
   /**
    * @brief Data sources
    */
-  using sid_to_source_map_t = std::map<int, std::shared_ptr<SourceConcept>>;
   sid_to_source_map_t m_sources;
-  uint32_t m_source_id; // NOLINT(build/unsigned)
+
+  using sid_to_fake_stream_id_map_t = std::map<uint32_t, uint32_t>;
+  /**
+   * @brief Fake packet stream IDs
+   */  
+  sid_to_fake_stream_id_map_t m_fake_stream_ids;
 
   /**
    * @brief Configured packet transmission rate in kHz

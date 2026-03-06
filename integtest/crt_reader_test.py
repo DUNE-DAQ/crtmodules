@@ -45,7 +45,15 @@ onebyone_local_crt_bern_conf.config_substitutions.append(
     data_classes.attribute_substitution(
         obj_class="SocketDataSender",
         obj_id="socket_sender_crt",
-        updates={"port": new_port},
+        updates={"local_port": 0, "remote_port": new_port},
+    )
+)
+new_port = find_free_port()
+onebyone_local_crt_bern_conf.config_substitutions.append(
+    data_classes.attribute_substitution(
+        obj_class="SocketDataSender",
+        obj_id="socket_sender_crt_2",
+        updates={"local_port": 0, "remote_port": new_port},
     )
 )
 onebyone_local_crt_bern_conf.config_substitutions.append(
@@ -86,7 +94,15 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
     data_classes.attribute_substitution(
         obj_class="SocketDataSender",
         obj_id="socket_sender_crt",
-        updates={"port": new_port},
+        updates={"local_port": 0, "remote_port": new_port},
+    )
+)
+new_port = find_free_port()
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.attribute_substitution(
+        obj_class="SocketDataSender",
+        obj_id="socket_sender_crt_2",
+        updates={"local_port": 0, "remote_port": new_port},
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
