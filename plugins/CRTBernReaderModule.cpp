@@ -112,17 +112,6 @@ CRTBernReaderModule::CRTBernReaderModule(const std::string& name)
   register_command("scrap", &CRTBernReaderModule::do_scrap);
 }
 
-inline void
-tokenize(std::string const& str, const char delim, std::vector<std::string>& out)
-{
-  std::size_t start;
-  std::size_t end = 0;
-  while ((start = str.find_first_not_of(delim, end)) != std::string::npos) {
-    end = str.find(delim, start);
-    out.push_back(str.substr(start, end - start));
-  }
-}
-
 void
 CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg)
 {
@@ -165,17 +154,7 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mc
       throw err;
     }
 
-    // Check for CB prefix indicating Callback use
-    const char delim = '_';
-    const std::string target = queue->UID();
-    std::vector<std::string> words;
-    tokenize(target, delim, words);
-
-    bool callback_mode = false;
-    if (words.front() == "cb") {
-      TLOG() << "CRTBernReaderModule does not support callbacks";
-      //callback_mode = true;
-    }
+    bool callback_mode = false; // CRTBernReaderModule does not support callbacks
 
     auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
     register_node(queue->UID(), ptr);

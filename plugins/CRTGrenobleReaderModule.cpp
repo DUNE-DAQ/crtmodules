@@ -112,17 +112,6 @@ CRTGrenobleReaderModule::CRTGrenobleReaderModule(const std::string& name)
   register_command("scrap", &CRTGrenobleReaderModule::do_scrap);
 }
 
-inline void
-tokenize(std::string const& str, const char delim, std::vector<std::string>& out)
-{
-  std::size_t start;
-  std::size_t end = 0;
-  while ((start = str.find_first_not_of(delim, end)) != std::string::npos) {
-    end = str.find(delim, start);
-    out.push_back(str.substr(start, end - start));
-  }
-}
-
 void
 CRTGrenobleReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg)
 {
@@ -165,18 +154,8 @@ CRTGrenobleReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager
       throw err;
     }
 
-    // Check for CB prefix indicating Callback use
-    const char delim = '_';
-    const std::string target = queue->UID();
-    std::vector<std::string> words;
-    tokenize(target, delim, words);
-
-    bool callback_mode = false;
-    if (words.front() == "cb") {
-      TLOG() << "CRTGrenobleReaderModule does not support callbacks";
-      //callback_mode = true;
-    }
-
+    bool callback_mode = false; // CRTGrenobleReaderModule does not support callbacks
+    
     auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
     register_node(queue->UID(), ptr);
   }
