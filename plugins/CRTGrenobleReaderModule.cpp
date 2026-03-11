@@ -2,15 +2,13 @@
  * @file CRTGrenobleReaderModule.cpp
  *
  * Reads data from the HW then puts it in a queue
- * 
+ *
  * This is part of the DUNE DAQ Software Suite, copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
 
 #include "CRTGrenobleReaderModule.hpp"
-
-#include "CreateSource.hpp"
 
 #include "crtmodules/opmon/CRTGrenobleReaderModule.pb.h"
 
@@ -24,9 +22,11 @@
 #include "confmodel/DetectorStream.hpp"
 #include "confmodel/GeoId.hpp"
 
-#include "fddetdataformats/CRTGrenobleFrame.hpp"
+#include "datahandlinglibs/DataHandlingIssues.hpp"
 
 #include "detdataformats/DetID.hpp"
+
+DUNE_DAQ_TYPESTRING(dunedaq::fddetdataformats::CRTGrenobleFrame, "CRTGrenobleFrame")
 
 namespace dunedaq {
 namespace crtmodules{
@@ -77,7 +77,7 @@ void
 fake_adc(fddetdataformats::CRTGrenobleFrame& frame)
 {
   for (int channel = 0; channel < fddetdataformats::CRTGrenobleFrame::s_num_channels; ++channel) {
-    frame.set_adc(channel, 0); 
+    frame.set_adc(channel, 0);
   }
 }
 
@@ -154,10 +154,9 @@ CRTGrenobleReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager
       throw err;
     }
 
-    bool callback_mode = false; // CRTGrenobleReaderModule does not support callbacks
-    
-    auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
-    register_node(queue->UID(), ptr);
+    // CRTGrenobleReaderModule does not support callbacks
+    auto connection_name = queue->UID();
+    m_raw_data_senders[queue->get_source_id()] = get_iom_sender<fddetdataformats::CRTGrenobleFrame>(connection_name);
   }
 }
 
@@ -169,7 +168,7 @@ CRTGrenobleReaderModule::do_conf(const CommandData_t& /*obj*/)
     set_running(true);
   } else {
     TLOG_DEBUG(5) << "Already running!";
-  }  
+  }
 }
 
 void
@@ -183,22 +182,17 @@ CRTGrenobleReaderModule::do_scrap(const CommandData_t& /*obj*/)
     }
   } else {
     TLOG_DEBUG(5) << "Already stopped!";
-  }  
+  }
 }
 
 void
 CRTGrenobleReaderModule::do_start(const CommandData_t& /*startobj*/)
 {
-  // Setup callbacks on all sourcemodels
-  //for (auto& [_, source] : m_sources) {
-  //  source->acquire_callback();
-  //}
-
   m_packet_count = 0;
-  
-  m_t0 = std::chrono::high_resolution_clock::now();
 
-  enable_flow();  
+  m_t0 = std::chrono::steady_clock::now();
+
+  enable_flow();
 
   m_producer_thread.set_work(&CRTGrenobleReaderModule::run_produce, this);
 }
@@ -214,7 +208,7 @@ CRTGrenobleReaderModule::generate_opmon_data()
 {
   opmon::CRTGrenobleReaderInfo i;
 
-  auto now = std::chrono::high_resolution_clock::now();
+  auto now = std::chrono::steady_clock::now();
   int new_packets = m_packet_count.exchange(0);
   double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
   m_t0 = now;
@@ -224,7 +218,7 @@ CRTGrenobleReaderModule::generate_opmon_data()
   publish(std::move(i));
 }
 
-void 
+void
 CRTGrenobleReaderModule::run_produce()
 {
   TLOG() << "Producer thread started..."; // TODO (DTE): Debug log instead
@@ -237,11 +231,11 @@ CRTGrenobleReaderModule::run_produce()
 
   while (m_run_marker.load()) {
     // Create a fake packet for each stream
-    for (const auto& [sid, source] : m_sources) {
+    for (const auto& [sid, sender] : m_raw_data_senders) {
       fake_data(frame, seq_id, timestamp, m_fake_stream_ids[sid]); // TODO: To be filled by the CRT experts
   
       if (m_enable_flow.load()) [[likely]] {   
-        source->handle_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
+        sender->try_send(std::move(frame), iomanager::Sender::s_no_block);
         ++m_packet_count;
       }
 

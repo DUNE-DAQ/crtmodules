@@ -13,14 +13,13 @@
 
 #include "appfwk/DAQModule.hpp"
 #include "utilities/ReusableThread.hpp"
+#include "fddetdataformats/CRTBernFrame.hpp"
 
 #include <memory>
 #include <map>
 
 namespace dunedaq {
 namespace crtmodules {
-
-class SourceConcept;
 
 class CRTBernReaderModule : public dunedaq::appfwk::DAQModule
 {
@@ -88,12 +87,11 @@ private:
    */       
   utilities::ReusableThread m_producer_thread;  
 
-  // Sinks (SourceConcepts)
-  using sid_to_source_map_t = std::map<uint32_t, std::shared_ptr<SourceConcept>>;
+  using sid_to_sender_map_t = std::map<uint32_t, std::shared_ptr<iomanager::SenderConcept<fddetdataformats::CRTBernFrame>>>;
   /**
-   * @brief Data sources
+   * @brief Raw data senders
    */
-  sid_to_source_map_t m_sources;
+  sid_to_sender_map_t m_raw_data_senders;
 
   using sid_to_fake_stream_id_map_t = std::map<uint32_t, uint32_t>;
   /**
@@ -115,7 +113,7 @@ private:
   /**
    * @brief Timestamp used to measure time between opmon reports
    */   
-  std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;      
+  std::chrono::time_point<std::chrono::steady_clock> m_t0;      
 };
 } // namespace crtmodules
 } // namespace dunedaq

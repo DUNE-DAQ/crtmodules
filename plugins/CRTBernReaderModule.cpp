@@ -1,6 +1,6 @@
 /**
- * @file CRTBernReaderModule.cpp 
- 
+ * @file CRTBernReaderModule.cpp
+
  * Reads data from the HW then puts it in a queue
  *
  * This is part of the DUNE DAQ Software Suite, copyright 2020.
@@ -10,11 +10,10 @@
 
 #include "CRTBernReaderModule.hpp"
 
-#include "CreateSource.hpp"
-
 #include "crtmodules/opmon/CRTBernReaderModule.pb.h"
 
 #include "datahandlinglibs/utils/RateLimiter.hpp"
+#include "datahandlinglibs/DataHandlingIssues.hpp"
 
 #include "appmodel/DataReaderModule.hpp"
 #include "appmodel/SocketDetectorToDaqConnection.hpp"
@@ -24,9 +23,9 @@
 #include "confmodel/DetectorStream.hpp"
 #include "confmodel/GeoId.hpp"
 
-#include "fddetdataformats/CRTBernFrame.hpp"
-
 #include "detdataformats/DetID.hpp"
+
+DUNE_DAQ_TYPESTRING(dunedaq::fddetdataformats::CRTBernFrame, "CRTBernFrame")
 
 namespace dunedaq {
 namespace crtmodules{
@@ -77,7 +76,7 @@ void
 fake_adc(fddetdataformats::CRTBernFrame& frame)
 {
   for (int channel = 0; channel < fddetdataformats::CRTBernFrame::s_num_channels; ++channel) {
-    frame.set_adc(channel, 0); 
+    frame.set_adc(channel, 0);
   }
 }
 
@@ -153,11 +152,10 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mc
       ers::fatal(err);
       throw err;
     }
-
-    bool callback_mode = false; // CRTBernReaderModule does not support callbacks
-
-    auto ptr = m_sources[queue->get_source_id()] = createSourceModel(queue->UID(), callback_mode);
-    register_node(queue->UID(), ptr);
+    
+    // CRTBernReaderModule does not support callbacks
+    auto connection_name = queue->UID();
+    m_raw_data_senders[queue->get_source_id()] = get_iom_sender<fddetdataformats::CRTBernFrame>(connection_name);
   }
 }
 
@@ -169,7 +167,7 @@ CRTBernReaderModule::do_conf(const CommandData_t& /*obj*/)
     set_running(true);
   } else {
     TLOG_DEBUG(5) << "Already running!";
-  }  
+  }
 }
 
 void
@@ -183,21 +181,16 @@ CRTBernReaderModule::do_scrap(const CommandData_t& /*obj*/)
     }
   } else {
     TLOG_DEBUG(5) << "Already stopped!";
-  }  
+  }
 }
 
 void
 CRTBernReaderModule::do_start(const CommandData_t& /*startobj*/)
 {
-  // Setup callbacks on all sourcemodels
-  //for (auto& [_, source] : m_sources) {
-  //  source->acquire_callback();
-  //}
-
-  enable_flow();  
+  enable_flow();
 
   m_packet_count = 0;
-  m_t0 = std::chrono::high_resolution_clock::now();
+  m_t0 = std::chrono::steady_clock::now();
 
   m_producer_thread.set_work(&CRTBernReaderModule::run_produce, this);
 }
@@ -213,7 +206,7 @@ CRTBernReaderModule::generate_opmon_data()
 {
   opmon::CRTBernReaderInfo i;
 
-  auto now = std::chrono::high_resolution_clock::now();
+  auto now = std::chrono::steady_clock::now();
   int new_packets = m_packet_count.exchange(0);
   double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
   m_t0 = now;
@@ -223,7 +216,7 @@ CRTBernReaderModule::generate_opmon_data()
   publish(std::move(i));
 }
 
-void 
+void
 CRTBernReaderModule::run_produce()
 {
   TLOG() << "Producer thread started..."; // TODO (DTE): Debug log instead
@@ -236,11 +229,11 @@ CRTBernReaderModule::run_produce()
 
   while (m_run_marker.load()) {
     // Create a fake packet for each stream
-    for (const auto& [sid, source] : m_sources) {
+    for (const auto& [sid, sender] : m_raw_data_senders) {
       fake_data(frame, seq_id, timestamp, m_fake_stream_ids[sid]); // TODO: To be filled by the CRT experts
   
       if (m_enable_flow.load()) [[likely]] {   
-        source->handle_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
+        sender->try_send(std::move(frame), iomanager::Sender::s_no_block);
         ++m_packet_count;
       }
 
