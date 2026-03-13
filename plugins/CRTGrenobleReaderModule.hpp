@@ -13,7 +13,6 @@
 
 #include "appfwk/DAQModule.hpp"
 #include "utilities/ReusableThread.hpp"
-#include "fddetdataformats/CRTGrenobleFrame.hpp"
 
 #include <memory>
 #include <map>

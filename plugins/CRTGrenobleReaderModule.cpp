@@ -20,6 +20,8 @@
 #include "appmodel/SocketDetectorToDaqConnection.hpp"
 #include "appmodel/NWDetDataSender.hpp"
 
+#include "fddetdataformats/CRTGrenobleFrame.hpp"
+
 #include "confmodel/QueueWithSourceId.hpp"
 #include "confmodel/DetectorStream.hpp"
 #include "confmodel/GeoId.hpp"

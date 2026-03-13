@@ -21,6 +21,8 @@
 #include "appmodel/SocketDetectorToDaqConnection.hpp"
 #include "appmodel/NWDetDataSender.hpp"
 
+#include "fddetdataformats/CRTBernFrame.hpp"
+
 #include "confmodel/QueueWithSourceId.hpp"
 #include "confmodel/DetectorStream.hpp"
 #include "confmodel/GeoId.hpp"
