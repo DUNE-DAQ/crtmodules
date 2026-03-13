@@ -10,6 +10,8 @@
 
 #include "CRTBernReaderModule.hpp"
 
+#include "CreateSource.hpp"
+
 #include "crtmodules/opmon/CRTBernReaderModule.pb.h"
 
 #include "datahandlinglibs/utils/RateLimiter.hpp"
@@ -24,8 +26,6 @@
 #include "confmodel/GeoId.hpp"
 
 #include "detdataformats/DetID.hpp"
-
-DUNE_DAQ_TYPESTRING(dunedaq::fddetdataformats::CRTBernFrame, "CRTBernFrame")
 
 namespace dunedaq {
 namespace crtmodules{
@@ -116,6 +116,18 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mc
 {
   auto* mdal = mcfg->get_dal<appmodel::DataReaderModule>(get_name());
   
+  if (mdal->get_raw_data_callbacks().empty()) {
+    auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE,
+                                                              "No outputs defined for CRT Bern reader in configuration.");
+    ers::fatal(err);
+    throw err;
+  }
+
+  for (auto* con : mdal->get_raw_data_callbacks()) {
+    auto ptr = m_sources[con->get_source_id()] = createSourceModel(con);
+    register_node(con->UID(), ptr);
+  }
+    
   auto* d2d_conn = mdal->get_connections()[0]; // there's only 1 connection
   auto* socket_d2d_conn = d2d_conn->cast<appmodel::SocketDetectorToDaqConnection>();
   if (socket_d2d_conn == nullptr) {
@@ -136,26 +148,6 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mc
 
       m_fake_stream_ids[det_stream->get_source_id()] = det_stream->get_geo_id()->get_stream_id();
     }    
-  }
-
-  if (mdal->get_outputs().empty()) {
-    auto err = datahandlinglibs::InitializationError(ERS_HERE,
-                                                              "No outputs defined for CRT Bern reader in configuration.");
-    ers::fatal(err);
-    throw err;
-  }
-
-  for (auto* con : mdal->get_outputs()) {
-    auto* queue = con->cast<confmodel::QueueWithSourceId>();
-    if (queue == nullptr) {
-      auto err = datahandlinglibs::InitializationError(ERS_HERE, "Outputs are not of type QueueWithGeoId.");
-      ers::fatal(err);
-      throw err;
-    }
-    
-    // CRTBernReaderModule does not support callbacks
-    auto connection_name = queue->UID();
-    m_raw_data_senders[queue->get_source_id()] = get_iom_sender<fddetdataformats::CRTBernFrame>(connection_name);
   }
 }
 
@@ -187,6 +179,11 @@ CRTBernReaderModule::do_scrap(const CommandData_t& /*obj*/)
 void
 CRTBernReaderModule::do_start(const CommandData_t& /*startobj*/)
 {
+  // Setup callbacks on all sourcemodels
+  for (auto& [sourceid, source] : m_sources) {
+    source->acquire_callback();
+  }
+    
   enable_flow();
 
   m_packet_count = 0;
@@ -229,11 +226,11 @@ CRTBernReaderModule::run_produce()
 
   while (m_run_marker.load()) {
     // Create a fake packet for each stream
-    for (const auto& [sid, sender] : m_raw_data_senders) {
+    for (const auto& [sid, source] : m_sources) {
       fake_data(frame, seq_id, timestamp, m_fake_stream_ids[sid]); // TODO: To be filled by the CRT experts
   
       if (m_enable_flow.load()) [[likely]] {   
-        sender->try_send(std::move(frame), iomanager::Sender::s_no_block);
+        source->handle_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
         ++m_packet_count;
       }
 

@@ -21,6 +21,8 @@
 namespace dunedaq {
 namespace crtmodules {
 
+class SourceConcept;
+
 class CRTBernReaderModule : public dunedaq::appfwk::DAQModule
 {
 public:
@@ -87,11 +89,11 @@ private:
    */       
   utilities::ReusableThread m_producer_thread;  
 
-  using sid_to_sender_map_t = std::map<uint32_t, std::shared_ptr<iomanager::SenderConcept<fddetdataformats::CRTBernFrame>>>;
+  using sid_to_source_map_t = std::map<uint32_t, std::shared_ptr<SourceConcept>>;
   /**
-   * @brief Raw data senders
+   * @brief Data sources
    */
-  sid_to_sender_map_t m_raw_data_senders;
+  sid_to_source_map_t m_sources;
 
   using sid_to_fake_stream_id_map_t = std::map<uint32_t, uint32_t>;
   /**
