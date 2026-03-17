@@ -20,8 +20,8 @@
 
 namespace dunedaq {
 
-DUNE_DAQ_TYPESTRING(dunedaq::fddetdataformats::CRTBernFrame, "CRTBernFrame")
-DUNE_DAQ_TYPESTRING(dunedaq::fddetdataformats::CRTGrenobleFrame, "CRTGrenobleFrame")
+DUNE_DAQ_TYPESTRING(dunedaq::fdreadoutlibs::types::CRTBernTypeAdapter, "CRTBernFrame")
+DUNE_DAQ_TYPESTRING(dunedaq::fdreadoutlibs::types::CRTGrenobleTypeAdapter, "CRTGrenobleFrame")
 
 namespace crtmodules {
 
@@ -33,11 +33,11 @@ createSourceModel(const appmodel::DataMoveCallbackConf* conf)
          << " [uid:" << conf->UID() << " , data_type:" << datatype << ']';
 
   if (datatype.find("CRTBernFrame") != std::string::npos) {
-    auto source_model = std::make_shared<SourceModel<fddetdataformats::CRTBernFrame>>();
+    auto source_model = std::make_shared<SourceModel<fdreadoutlibs::types::CRTBernTypeAdapter>>();
     source_model->set_sink_config(conf);
     return source_model;
   } else if (datatype.find("CRTGrenobleFrame") != std::string::npos) {
-    auto source_model = std::make_shared<SourceModel<fddetdataformats::CRTGrenobleFrame>>();
+    auto source_model = std::make_shared<SourceModel<fdreadoutlibs::types::CRTGrenobleTypeAdapter>>();
     source_model->set_sink_config(conf);
     return source_model;
   }

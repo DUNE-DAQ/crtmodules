@@ -40,20 +40,22 @@ common_config_obj.config_db = (
 onebyone_local_crt_bern_conf = copy.deepcopy(common_config_obj)
 onebyone_local_crt_bern_conf.session = "local-socket-1x1-config"
 
-new_port = find_free_port()
+new_local_port = find_free_port()
+new_remote_port = find_free_port()
 onebyone_local_crt_bern_conf.config_substitutions.append(
     data_classes.attribute_substitution(
         obj_class="SocketDataSender",
         obj_id="socket_sender_crt",
-        updates={"local_port": 0, "remote_port": new_port},
+        updates={"local_port": new_local_port, "remote_port": new_remote_port},
     )
 )
-new_port = find_free_port()
+new_local_port = find_free_port()
+new_remote_port = find_free_port()
 onebyone_local_crt_bern_conf.config_substitutions.append(
     data_classes.attribute_substitution(
         obj_class="SocketDataSender",
         obj_id="socket_sender_crt_2",
-        updates={"local_port": 0, "remote_port": new_port},
+        updates={"local_port": new_local_port, "remote_port": new_remote_port},
     )
 )
 onebyone_local_crt_bern_conf.config_substitutions.append(
@@ -89,20 +91,22 @@ onebyone_local_crt_bern_conf.config_substitutions.append(
 onebyone_local_crt_grenoble_conf = copy.deepcopy(common_config_obj)
 onebyone_local_crt_grenoble_conf.session = "local-socket-1x1-config"
 
-new_port = find_free_port()
+new_local_port = find_free_port()
+new_remote_port = find_free_port()
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
     data_classes.attribute_substitution(
         obj_class="SocketDataSender",
         obj_id="socket_sender_crt",
-        updates={"local_port": 0, "remote_port": new_port},
+        updates={"local_port": new_local_port, "remote_port": new_remote_port},
     )
 )
-new_port = find_free_port()
+new_local_port = find_free_port()
+new_remote_port = find_free_port()
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
     data_classes.attribute_substitution(
         obj_class="SocketDataSender",
         obj_id="socket_sender_crt_2",
-        updates={"local_port": 0, "remote_port": new_port},
+        updates={"local_port": new_local_port, "remote_port": new_remote_port},
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
@@ -112,6 +116,15 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
         rel_name="data_reader",
         replacement_object_class="CRTGrenobleReaderConf",
         replacement_object_id="def-crt-grenoble-receiver-conf"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="CRTReaderApplication",
+        obj_id="crt-data-source-01",
+        rel_name="callback_desc",
+        replacement_object_class="DataMoveCallbackDescriptor",
+        replacement_object_id="crt-grenoble-raw-input"
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
@@ -136,32 +149,21 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
 )
 
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
-    data_classes.list_element_substitution(
-        obj_class="CRTReaderApplication",
-        obj_id="crt-data-source-01",
-        rel_name="queue_rules",
-        list_index=0,
-        replacement_object_class="QueueConnectionRule",
-        replacement_object_id="crt-grenoble-raw-data-rule"
-    )
-)
-onebyone_local_crt_grenoble_conf.config_substitutions.append(
-    data_classes.list_element_substitution(
-        obj_class="ReadoutApplication",
-        obj_id="socket-ru-01",
-        rel_name="queue_rules",
-        list_index=1,
-        replacement_object_class="QueueConnectionRule",
-        replacement_object_id="crt-grenoble-callback-raw-data-rule"
-    )
-)
-onebyone_local_crt_grenoble_conf.config_substitutions.append(
     data_classes.relationship_substitution(
         obj_class="ReadoutApplication",
         obj_id="socket-ru-01",
         rel_name="link_handler",
         replacement_object_class="DataHandlerConf",
         replacement_object_id="def-crt-grenoble-link-handler"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="ReadoutApplication",
+        obj_id="socket-ru-01",
+        rel_name="callback_desc",
+        replacement_object_class="DataMoveCallbackDescriptor",
+        replacement_object_id="crt-grenoble-raw-input"
     )
 )
 
