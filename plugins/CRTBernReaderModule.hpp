@@ -16,9 +16,9 @@
 
 #include <memory>
 #include <map>
+#include <string>
 
-namespace dunedaq {
-namespace crtmodules {
+namespace dunedaq::crtmodules {
 
 class SourceConcept;
 
@@ -88,13 +88,13 @@ private:
    */       
   utilities::ReusableThread m_producer_thread;  
 
-  using sid_to_source_map_t = std::map<uint32_t, std::shared_ptr<SourceConcept>>;
+  using sid_to_source_map_t = std::map<uint32_t, std::shared_ptr<SourceConcept>>; // NOLINT(build/unsigned)
   /**
    * @brief Data sources
    */
   sid_to_source_map_t m_sources;
 
-  using sid_to_fake_stream_id_map_t = std::map<uint32_t, uint32_t>;
+  using sid_to_fake_stream_id_map_t = std::map<uint32_t, uint32_t>; // NOLINT(build/unsigned)
   /**
    * @brief Fake packet stream IDs
    */  
@@ -116,7 +116,6 @@ private:
    */   
   std::chrono::time_point<std::chrono::steady_clock> m_t0;      
 };
-} // namespace crtmodules
-} // namespace dunedaq
+} // namespace dunedaq::crtmodules
 
 #endif // CRTMODULES_PLUGINS_CRTBERNREADERMODULE_HPP_

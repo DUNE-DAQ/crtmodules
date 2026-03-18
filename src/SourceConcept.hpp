@@ -24,34 +24,32 @@
 #include <sstream>
 #include <string>
 
-namespace dunedaq {
-  namespace crtmodules {
+namespace dunedaq::crtmodules {
 
-    class SourceConcept : public opmonlib::MonitorableObject
-    {
-    public:
-      SourceConcept() {}
-      virtual ~SourceConcept() {}
+  class SourceConcept : public opmonlib::MonitorableObject
+  {
+  public:
+    SourceConcept() {}
+    virtual ~SourceConcept() {}
 
-      SourceConcept(const SourceConcept&) = delete;            ///< SourceConcept is not copy-constructible
-      SourceConcept& operator=(const SourceConcept&) = delete; ///< SourceConcept is not copy-assignable
-      SourceConcept(SourceConcept&&) = delete;                 ///< SourceConcept is not move-constructible
-      SourceConcept& operator=(SourceConcept&&) = delete;      ///< SourceConcept is not move-assignable
+    SourceConcept(const SourceConcept&) = delete;            ///< SourceConcept is not copy-constructible
+    SourceConcept& operator=(const SourceConcept&) = delete; ///< SourceConcept is not copy-assignable
+    SourceConcept(SourceConcept&&) = delete;                 ///< SourceConcept is not move-constructible
+    SourceConcept& operator=(SourceConcept&&) = delete;      ///< SourceConcept is not move-assignable
 
-      //  virtual void init(const nlohmann::json& args) = 0;
-      virtual void acquire_callback() = 0;
-      //  virtual void conf(const nlohmann::json& args) = 0;
-      //  virtual void start(const nlohmann::json& args) = 0;
-      //  virtual void stop(const nlohmann::json& args) = 0;
+    //  virtual void init(const nlohmann::json& args) = 0;
+    virtual void acquire_callback() = 0;
+    //  virtual void conf(const nlohmann::json& args) = 0;
+    //  virtual void start(const nlohmann::json& args) = 0;
+    //  virtual void stop(const nlohmann::json& args) = 0;
 
-      virtual bool handle_payload(char* message, std::size_t size) = 0;
+    virtual bool handle_payload(char* message, std::size_t size) = 0;
 
-      void set_sink_config(const appmodel::DataMoveCallbackConf* sink_conf) { m_sink_conf = sink_conf; }
+    void set_sink_config(const appmodel::DataMoveCallbackConf* sink_conf) { m_sink_conf = sink_conf; }
 
-      const appmodel::DataMoveCallbackConf* m_sink_conf;
-    };
+    const appmodel::DataMoveCallbackConf* m_sink_conf;
+  };
 
-  } // namespace crtmodules
-} // namespace dunedaq
+} // namespace dunedaq::crtmodules
 
 #endif // CRTMODULES_SRC_SOURCECONCEPT_HPP_

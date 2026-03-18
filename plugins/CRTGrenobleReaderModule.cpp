@@ -30,30 +30,33 @@
 
 #include "detdataformats/DetID.hpp"
 
-namespace dunedaq {
-namespace crtmodules{
+#include <utility>
+#include <memory>
+#include <string>
+
+namespace dunedaq::crtmodules {
 
 /**
  * @brief Maximum packet sequence ID before reset
  */
-constexpr uint64_t max_seq_id = 4095;
+constexpr uint64_t max_seq_id = 4095; // NOLINT(build/unsigned)
 
 /**
  * @brief Fake packet detector ID
  */
-constexpr uint8_t fake_det_id = (uint8_t)detdataformats::DetID::Subdetector::kVD_GrenobleCRT;
+constexpr uint8_t fake_det_id = static_cast<uint8_t>(detdataformats::DetID::Subdetector::kVD_GrenobleCRT); // NOLINT(build/unsigned)
 
 /**
  * @brief Fake packet block length
  */
-constexpr uint64_t fake_block_length = 0x382;
+constexpr uint64_t fake_block_length = 0x382; // NOLINT(build/unsigned)
 
 /**
  * @brief Calculate the next fake sequence ID for a packet
  * @param seq_id Fake packet sequence ID
  */
 void
-fake_sequence_id(uint64_t& seq_id)
+fake_sequence_id(uint64_t& seq_id) // NOLINT(build/unsigned)
 {
   seq_id = (seq_id == max_seq_id ? 0 : seq_id+1);
 }
@@ -63,7 +66,7 @@ fake_sequence_id(uint64_t& seq_id)
  * @param timestamp Fake packet timestamp
  */
 void
-fake_timestamp(uint64_t& timestamp)
+fake_timestamp(uint64_t& timestamp) // NOLINT(build/unsigned)
 {
     auto time_now = std::chrono::steady_clock::now().time_since_epoch();
     uint64_t current_time = // NOLINT (build/unsigned)
@@ -91,7 +94,7 @@ fake_adc(fddetdataformats::CRTGrenobleFrame& frame)
  * @param stream_id Fake packet stream ID
  */
 void
-fake_data(fddetdataformats::CRTGrenobleFrame& frame, uint64_t& seq_id, uint64_t& timestamp, uint32_t stream_id)
+fake_data(fddetdataformats::CRTGrenobleFrame& frame, uint64_t& seq_id, uint64_t& timestamp, uint32_t stream_id) // NOLINT(build/unsigned)
 {
   frame.daq_header.det_id = fake_det_id & 0x3f; //6 bits for det id
   frame.daq_header.crate_id = 1;
@@ -223,8 +226,8 @@ CRTGrenobleReaderModule::run_produce()
   TLOG() << "Producer thread started..."; // TODO (DTE): Debug log instead
 
   fddetdataformats::CRTGrenobleFrame frame;
-  uint64_t seq_id = 0;
-  uint64_t timestamp = 0;
+  uint64_t seq_id = 0; // NOLINT(build/unsigned)
+  uint64_t timestamp = 0; // NOLINT(build/unsigned)
 
   datahandlinglibs::RateLimiter rate_limiter(m_configured_packet_rate_khz);
 
@@ -252,7 +255,6 @@ CRTGrenobleReaderModule::set_running(bool should_run)
   TLOG_DEBUG(5) << "Active state was toggled from " << was_running << " to " << should_run;
 }
 
-}
-}
+} // namespace dunedaq::crtmodules
 
 DEFINE_DUNE_DAQ_MODULE(dunedaq::crtmodules::CRTGrenobleReaderModule)

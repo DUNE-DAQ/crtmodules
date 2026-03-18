@@ -23,12 +23,12 @@
 
 // #include <folly/ProducerConsumerQueue.h>
 // #include <nlohmann/json.hpp>
-
+// NOLINT(build/unsigned)
 #include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
-
+#include <utility>
 
 namespace dunedaq::crtmodules {
 
@@ -66,7 +66,7 @@ public:
       }
   }
 
-  bool handle_payload(char* message, std::size_t size) // NOLINT(build/unsigned)
+  bool handle_payload(char* message, std::size_t size) override
   {
     bool push_out = true;
     if (push_out) {
@@ -76,7 +76,7 @@ public:
 
     } else {
       TargetPayloadType target_payload;
-      uint32_t bytes_copied = 0;
+      uint32_t bytes_copied = 0; // NOLINT(build/unsigned)
       datahandlinglibs::buffer_copy(message, size, static_cast<void*>(&target_payload), bytes_copied, sizeof(target_payload));
     }
 
@@ -97,7 +97,7 @@ private:
   using sink_cb_t = std::shared_ptr<std::function<void(TargetPayloadType&&)>>;
   sink_cb_t m_sink_callback;
 
-  std::atomic<uint64_t> m_dropped_packets{0};
+  std::atomic<uint64_t> m_dropped_packets{0}; // NOLINT(build/unsigned)
 
 };
 
