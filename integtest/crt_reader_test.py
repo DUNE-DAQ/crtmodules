@@ -60,11 +60,11 @@ onebyone_local_crt_bern_conf.config_substitutions.append(
 )
 onebyone_local_crt_bern_conf.config_substitutions.append(
     data_classes.relationship_substitution(
-        obj_class="CRTReaderApplication",
+        obj_class="CRTFrameBuilderApplication",
         obj_id="crt-data-source-01",
-        rel_name="data_reader",
-        replacement_object_class="CRTBernReaderConf",
-        replacement_object_id="def-crt-bern-receiver-conf"
+        rel_name="detector_frame_builder",
+        replacement_object_class="CRTBernFrameBuilderConf",
+        replacement_object_id="def-crt-bern-frame-builder-conf"
     )
 )
 onebyone_local_crt_bern_conf.config_substitutions.append(
@@ -74,7 +74,7 @@ onebyone_local_crt_bern_conf.config_substitutions.append(
         rel_name="steps",
         list_index=1,
         replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-bern-reader-data-source-step"
+        replacement_object_id="crt-bern-frame-builder-data-source-step"
     )
 )
 onebyone_local_crt_bern_conf.config_substitutions.append(
@@ -84,7 +84,7 @@ onebyone_local_crt_bern_conf.config_substitutions.append(
         rel_name="steps",
         list_index=0,
         replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-bern-reader-data-source-step"
+        replacement_object_id="crt-bern-frame-builder-data-source-step"
     )
 )
 
@@ -111,16 +111,16 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
     data_classes.relationship_substitution(
-        obj_class="CRTReaderApplication",
+        obj_class="CRTFrameBuilderApplication",
         obj_id="crt-data-source-01",
-        rel_name="data_reader",
-        replacement_object_class="CRTGrenobleReaderConf",
-        replacement_object_id="def-crt-grenoble-receiver-conf"
+        rel_name="detector_frame_builder",
+        replacement_object_class="CRTGrenobleFrameBuilderConf",
+        replacement_object_id="def-crt-grenoble-frame-builder-conf"
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
     data_classes.relationship_substitution(
-        obj_class="CRTReaderApplication",
+        obj_class="CRTFrameBuilderApplication",
         obj_id="crt-data-source-01",
         rel_name="callback_desc",
         replacement_object_class="DataMoveCallbackDescriptor",
@@ -134,7 +134,7 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
         rel_name="steps",
         list_index=1,
         replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-grenoble-reader-data-source-step"
+        replacement_object_id="crt-grenoble-frame-builder-data-source-step"
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
@@ -144,7 +144,7 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
         rel_name="steps",
         list_index=0,
         replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-grenoble-reader-data-source-step"
+        replacement_object_id="crt-grenoble-frame-builder-data-source-step"
     )
 )
 

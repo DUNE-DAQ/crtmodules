@@ -1,5 +1,5 @@
 /**
- * @file CRTBernReaderModule.hpp
+ * @file CRTGrenobleFrameBuilderModule.hpp
  *
  * Reads data from the HW then puts it in a queue
  *
@@ -8,8 +8,8 @@
  * received with this code.
  */
 
-#ifndef CRTMODULES_PLUGINS_CRTBERNREADERMODULE_HPP_
-#define CRTMODULES_PLUGINS_CRTBERNREADERMODULE_HPP_
+#ifndef CRTMODULES_PLUGINS_CRTGRENOBLEFRAMEBUILDERMODULE_HPP_
+#define CRTMODULES_PLUGINS_CRTGRENOBLEFRAMEBUILDERMODULE_HPP_
 
 #include "appfwk/DAQModule.hpp"
 #include "utilities/ReusableThread.hpp"
@@ -22,24 +22,24 @@ namespace dunedaq::crtmodules {
 
 class SourceConcept;
 
-class CRTBernReaderModule : public dunedaq::appfwk::DAQModule
+class CRTGrenobleFrameBuilderModule : public dunedaq::appfwk::DAQModule
 {
 public:
   /**
-   * @brief CRTBernReaderModule constructor
+   * @brief CRTGrenobleFrameBuilderModule constructor
    * @param name DAQ module instance name
    */
-  explicit CRTBernReaderModule(const std::string& name);
+  explicit CRTGrenobleFrameBuilderModule(const std::string& name);
 
-  CRTBernReaderModule(const CRTBernReaderModule&) = delete;            ///< CRTBernReaderModule is not copy-constructible
-  CRTBernReaderModule& operator=(const CRTBernReaderModule&) = delete; ///< CRTBernReaderModule is not copy-assignable
-  CRTBernReaderModule(CRTBernReaderModule&&) = delete;                 ///< CRTBernReaderModule is not move-constructible
-  CRTBernReaderModule& operator=(CRTBernReaderModule&&) = delete;      ///< CRTBernReaderModule is not move-assignable
+  CRTGrenobleFrameBuilderModule(const CRTGrenobleFrameBuilderModule&) = delete;            ///< CRTGrenobleFrameBuilderModule is not copy-constructible
+  CRTGrenobleFrameBuilderModule& operator=(const CRTGrenobleFrameBuilderModule&) = delete; ///< CRTGrenobleFrameBuilderModule is not copy-assignable
+  CRTGrenobleFrameBuilderModule(CRTGrenobleFrameBuilderModule&&) = delete;                 ///< CRTGrenobleFrameBuilderModule is not move-constructible
+  CRTGrenobleFrameBuilderModule& operator=(CRTGrenobleFrameBuilderModule&&) = delete;      ///< CRTGrenobleFrameBuilderModule is not move-assignable
 
   /**
    * @brief Handles initialization on boot
    * @param mcfg DAQ configuration data
-   */    
+   */  
   void init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg) override;
 
 private:
@@ -48,7 +48,7 @@ private:
   void do_start(const CommandData_t& obj);
   void do_stop(const CommandData_t& obj);
   void do_scrap(const CommandData_t& obj);
-
+  
   void generate_opmon_data() override;
 
   /**
@@ -59,9 +59,9 @@ private:
   /**
    * @brief Sets run marker
    * @param should_run Whether producer thread should continue
-   */      
-  void set_running(bool /*should_run*/);  
-  
+   */    
+  void set_running(bool /*should_run*/);
+
   /**
    * @brief Enables data taking
    */   
@@ -118,4 +118,4 @@ private:
 };
 } // namespace dunedaq::crtmodules
 
-#endif // CRTMODULES_PLUGINS_CRTBERNREADERMODULE_HPP_
+#endif // CRTMODULES_PLUGINS_CRTGRENOBLEFRAMEBUILDERMODULE_HPP_

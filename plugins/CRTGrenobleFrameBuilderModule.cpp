@@ -1,6 +1,6 @@
 /**
- * @file CRTBernReaderModule.cpp
-
+ * @file CRTGrenobleFrameBuilderModule.cpp
+ *
  * Reads data from the HW then puts it in a queue
  *
  * This is part of the DUNE DAQ Software Suite, copyright 2020.
@@ -8,24 +8,25 @@
  * received with this code.
  */
 
-#include "CRTBernReaderModule.hpp"
+#include "CRTGrenobleFrameBuilderModule.hpp"
 
 #include "CreateSource.hpp"
 
-#include "crtmodules/opmon/CRTBernReaderModule.pb.h"
+#include "crtmodules/opmon/CRTGrenobleFrameBuilderModule.pb.h"
 
 #include "datahandlinglibs/utils/RateLimiter.hpp"
-#include "datahandlinglibs/DataHandlingIssues.hpp"
 
 #include "appmodel/DataReaderModule.hpp"
 #include "appmodel/SocketDetectorToDaqConnection.hpp"
 #include "appmodel/NWDetDataSender.hpp"
 
-#include "fddetdataformats/CRTBernFrame.hpp"
+#include "fddetdataformats/CRTGrenobleFrame.hpp"
 
 #include "confmodel/QueueWithSourceId.hpp"
 #include "confmodel/DetectorStream.hpp"
 #include "confmodel/GeoId.hpp"
+
+#include "datahandlinglibs/DataHandlingIssues.hpp"
 
 #include "detdataformats/DetID.hpp"
 
@@ -43,7 +44,7 @@ constexpr uint64_t max_seq_id = 4095; // NOLINT(build/unsigned)
 /**
  * @brief Fake packet detector ID
  */
-constexpr uint8_t fake_det_id = static_cast<uint8_t>(detdataformats::DetID::Subdetector::kVD_BernCRT); // NOLINT(build/unsigned)
+constexpr uint8_t fake_det_id = static_cast<uint8_t>(detdataformats::DetID::Subdetector::kVD_GrenobleCRT); // NOLINT(build/unsigned)
 
 /**
  * @brief Fake packet block length
@@ -78,9 +79,9 @@ fake_timestamp(uint64_t& timestamp) // NOLINT(build/unsigned)
  * @param frame Fake packet
  */
 void
-fake_adc(fddetdataformats::CRTBernFrame& frame)
+fake_adc(fddetdataformats::CRTGrenobleFrame& frame)
 {
-  for (int channel = 0; channel < fddetdataformats::CRTBernFrame::s_num_channels; ++channel) {
+  for (int channel = 0; channel < fddetdataformats::CRTGrenobleFrame::s_num_channels; ++channel) {
     frame.set_adc(channel, 0);
   }
 }
@@ -93,7 +94,7 @@ fake_adc(fddetdataformats::CRTBernFrame& frame)
  * @param stream_id Fake packet stream ID
  */
 void
-fake_data(fddetdataformats::CRTBernFrame& frame, uint64_t& seq_id, uint64_t& timestamp, uint32_t stream_id) // NOLINT(build/unsigned)
+fake_data(fddetdataformats::CRTGrenobleFrame& frame, uint64_t& seq_id, uint64_t& timestamp, uint32_t stream_id) // NOLINT(build/unsigned)
 {
   frame.daq_header.det_id = fake_det_id & 0x3f; //6 bits for det id
   frame.daq_header.crate_id = 1;
@@ -107,23 +108,23 @@ fake_data(fddetdataformats::CRTBernFrame& frame, uint64_t& seq_id, uint64_t& tim
   fake_adc(frame);
 }
 
-CRTBernReaderModule::CRTBernReaderModule(const std::string& name)
+CRTGrenobleFrameBuilderModule::CRTGrenobleFrameBuilderModule(const std::string& name)
   : DAQModule(name)
 {
-  register_command("conf", &CRTBernReaderModule::do_conf);
-  register_command("start", &CRTBernReaderModule::do_start);
-  register_command("stop_trigger_sources", &CRTBernReaderModule::do_stop);
-  register_command("scrap", &CRTBernReaderModule::do_scrap);
+  register_command("conf", &CRTGrenobleFrameBuilderModule::do_conf);
+  register_command("start", &CRTGrenobleFrameBuilderModule::do_start);
+  register_command("stop_trigger_sources", &CRTGrenobleFrameBuilderModule::do_stop);
+  register_command("scrap", &CRTGrenobleFrameBuilderModule::do_scrap);
 }
 
 void
-CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg)
+CRTGrenobleFrameBuilderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg)
 {
   auto* mdal = mcfg->get_dal<appmodel::DataReaderModule>(get_name());
   
   if (mdal->get_raw_data_callbacks().empty()) {
     auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE,
-                                                              "No outputs defined for CRT Bern reader in configuration.");
+                                                              "No outputs defined for CRT Grenoble frame builder in configuration.");
     ers::fatal(err);
     throw err;
   }
@@ -132,7 +133,7 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mc
     auto ptr = m_sources[con->get_source_id()] = createSourceModel(con);
     register_node(con->UID(), ptr);
   }
-    
+
   auto* d2d_conn = mdal->get_connections()[0]; // there's only 1 connection
   auto* socket_d2d_conn = d2d_conn->cast<appmodel::SocketDetectorToDaqConnection>();
   if (socket_d2d_conn == nullptr) {
@@ -157,7 +158,7 @@ CRTBernReaderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mc
 }
 
 void
-CRTBernReaderModule::do_conf(const CommandData_t& /*obj*/)
+CRTGrenobleFrameBuilderModule::do_conf(const CommandData_t& /*obj*/)
 {
   // Configure HW interface?
   if (!m_run_marker.load()) {
@@ -168,7 +169,7 @@ CRTBernReaderModule::do_conf(const CommandData_t& /*obj*/)
 }
 
 void
-CRTBernReaderModule::do_scrap(const CommandData_t& /*obj*/)
+CRTGrenobleFrameBuilderModule::do_scrap(const CommandData_t& /*obj*/)
 {
   if (m_run_marker.load()) {
     TLOG() << "Raising stop through variables!";
@@ -182,31 +183,32 @@ CRTBernReaderModule::do_scrap(const CommandData_t& /*obj*/)
 }
 
 void
-CRTBernReaderModule::do_start(const CommandData_t& /*startobj*/)
+CRTGrenobleFrameBuilderModule::do_start(const CommandData_t& /*startobj*/)
 {
   // Setup callbacks on all sourcemodels
   for (auto& [sourceid, source] : m_sources) {
     source->acquire_callback();
   }
-    
-  enable_flow();
 
   m_packet_count = 0;
+
   m_t0 = std::chrono::steady_clock::now();
 
-  m_producer_thread.set_work(&CRTBernReaderModule::run_produce, this);
+  enable_flow();
+
+  m_producer_thread.set_work(&CRTGrenobleFrameBuilderModule::run_produce, this);
 }
 
 void
-CRTBernReaderModule::do_stop(const CommandData_t& /*stopobj*/)
+CRTGrenobleFrameBuilderModule::do_stop(const CommandData_t& /*stopobj*/)
 {
   disable_flow();
 }
 
 void
-CRTBernReaderModule::generate_opmon_data()
+CRTGrenobleFrameBuilderModule::generate_opmon_data()
 {
-  opmon::CRTBernReaderInfo i;
+  opmon::CRTGrenobleFrameBuilderInfo i;
 
   auto now = std::chrono::steady_clock::now();
   int new_packets = m_packet_count.exchange(0);
@@ -219,11 +221,11 @@ CRTBernReaderModule::generate_opmon_data()
 }
 
 void
-CRTBernReaderModule::run_produce()
+CRTGrenobleFrameBuilderModule::run_produce()
 {
   TLOG() << "Producer thread started..."; // TODO (DTE): Debug log instead
 
-  fddetdataformats::CRTBernFrame frame;
+  fddetdataformats::CRTGrenobleFrame frame;
   uint64_t seq_id = 0; // NOLINT(build/unsigned)
   uint64_t timestamp = 0; // NOLINT(build/unsigned)
 
@@ -247,7 +249,7 @@ CRTBernReaderModule::run_produce()
 }
 
 void 
-CRTBernReaderModule::set_running(bool should_run)
+CRTGrenobleFrameBuilderModule::set_running(bool should_run)
 {
   bool was_running = m_run_marker.exchange(should_run);
   TLOG_DEBUG(5) << "Active state was toggled from " << was_running << " to " << should_run;
@@ -255,4 +257,4 @@ CRTBernReaderModule::set_running(bool should_run)
 
 } // namespace dunedaq::crtmodules
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::crtmodules::CRTBernReaderModule)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::crtmodules::CRTGrenobleFrameBuilderModule)
