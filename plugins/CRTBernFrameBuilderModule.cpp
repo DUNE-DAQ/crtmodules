@@ -186,7 +186,7 @@ CRTBernFrameBuilderModule::do_start(const CommandData_t& /*startobj*/)
   m_packet_count = 0;
   m_t0 = std::chrono::steady_clock::now();
 
-  uint32_t i = 0;
+  uint32_t i = 0; // NOLINT(build/unsigned)
   for (auto& producer : m_producer_threads) {
     producer->set_work(&CRTBernFrameBuilderModule::run_produce, this, m_fake_stream_ids[i++]);
   }
@@ -214,7 +214,7 @@ CRTBernFrameBuilderModule::generate_opmon_data()
 }
 
 void
-CRTBernFrameBuilderModule::run_produce(uint32_t fake_stream_id)
+CRTBernFrameBuilderModule::run_produce(uint32_t fake_stream_id) // NOLINT(build/unsigned)
 {
   TLOG() << "Producer thread started..."; // TODO (DTE): Debug log instead
 

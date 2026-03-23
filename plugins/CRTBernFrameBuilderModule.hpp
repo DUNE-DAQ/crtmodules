@@ -18,6 +18,7 @@
 #include <memory>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace dunedaq::crtmodules {
 
@@ -54,7 +55,7 @@ private:
    * @brief Data produce thread function
    * @param fake_stream_id Fake packet stream ID
    */     
-  void run_produce(uint32_t fake_stream_id);
+  void run_produce(uint32_t fake_stream_id); // NOLINT(build/unsigned)
 
   /**
    * @brief Sets run marker
