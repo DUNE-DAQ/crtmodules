@@ -13,14 +13,13 @@
 
 #include "appfwk/DAQModule.hpp"
 #include "utilities/ReusableThread.hpp"
+#include "fddetdataformats/CRTGrenobleFrame.hpp"
 
 #include <memory>
 #include <map>
 #include <string>
 
 namespace dunedaq::crtmodules {
-
-class SourceConcept;
 
 class CRTGrenobleFrameBuilderModule : public dunedaq::appfwk::DAQModule
 {
@@ -52,9 +51,10 @@ private:
   void generate_opmon_data() override;
 
   /**
-   * @brief Raw data produce thread function
+   * @brief Data produce thread function
+   * @param fake_stream_id Fake packet stream ID
    */     
-  void run_produce();
+  void run_produce(uint32_t fake_stream_id);
 
   /**
    * @brief Sets run marker
@@ -84,21 +84,19 @@ private:
 
   // PRODUCER
   /**
-   * @brief Raw data producer thread
+   * @brief Data producer threads
    */       
-  utilities::ReusableThread m_producer_thread;  
+  std::vector<std::unique_ptr<utilities::ReusableThread>> m_producer_threads;  
 
-  using sid_to_source_map_t = std::map<uint32_t, std::shared_ptr<SourceConcept>>; // NOLINT(build/unsigned)
   /**
-   * @brief Data sources
+   * @brief Data sender
    */
-  sid_to_source_map_t m_sources;
+  std::shared_ptr<iomanager::SenderConcept<fddetdataformats::CRTGrenobleFrame>> m_sender;
 
-  using sid_to_fake_stream_id_map_t = std::map<uint32_t, uint32_t>; // NOLINT(build/unsigned)
   /**
    * @brief Fake packet stream IDs
    */  
-  sid_to_fake_stream_id_map_t m_fake_stream_ids;
+  std::vector<uint32_t> m_fake_stream_ids; // NOLINT(build/unsigned)
 
   /**
    * @brief Configured packet transmission rate in kHz

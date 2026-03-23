@@ -10,8 +10,8 @@ import integrationtest.data_classes as data_classes
 pytest_plugins = "integrationtest.integrationtest_drunc"
 
 # Values that help determine the running conditions
-number_of_data_producers = 1
-number_of_readout_apps = 1
+number_of_data_producers = 4
+number_of_builder_apps = 2
 run_duration = 20  # seconds
 
 # Default values for validation parameters
@@ -26,7 +26,7 @@ ignored_logfile_problems = {
 
 common_config_obj = data_classes.drunc_config()
 common_config_obj.dro_map_config.n_streams = number_of_data_producers
-common_config_obj.dro_map_config.n_apps = number_of_readout_apps
+common_config_obj.dro_map_config.n_apps = number_of_builder_apps
 # 22-Jan-2026, KAB: added the use of the DAQSYSTEMTEST_SHARE env var as part of
 # specifying the location of the example-configs.data.xml file.  This is more
 # reliable than using a relative path to a parallel directory with the daqsystemtest
@@ -56,35 +56,6 @@ onebyone_local_crt_bern_conf.config_substitutions.append(
         obj_class="SocketDataSender",
         obj_id="socket_sender_crt_2",
         updates={"local_port": new_local_port, "remote_port": new_remote_port},
-    )
-)
-onebyone_local_crt_bern_conf.config_substitutions.append(
-    data_classes.relationship_substitution(
-        obj_class="CRTFrameBuilderApplication",
-        obj_id="crt-data-source-01",
-        rel_name="detector_frame_builder",
-        replacement_object_class="CRTBernFrameBuilderConf",
-        replacement_object_id="def-crt-bern-frame-builder-conf"
-    )
-)
-onebyone_local_crt_bern_conf.config_substitutions.append(
-    data_classes.list_element_substitution(
-        obj_class="ActionPlan",
-        obj_id="crt-readout-start",
-        rel_name="steps",
-        list_index=1,
-        replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-bern-frame-builder-data-source-step"
-    )
-)
-onebyone_local_crt_bern_conf.config_substitutions.append(
-    data_classes.list_element_substitution(
-        obj_class="ActionPlan",
-        obj_id="crt-readout-stop",
-        rel_name="steps",
-        list_index=0,
-        replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-bern-frame-builder-data-source-step"
     )
 )
 
@@ -119,12 +90,13 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
-    data_classes.relationship_substitution(
+    data_classes.list_element_substitution(
         obj_class="CRTFrameBuilderApplication",
         obj_id="crt-data-source-01",
-        rel_name="callback_desc",
-        replacement_object_class="DataMoveCallbackDescriptor",
-        replacement_object_id="crt-grenoble-raw-input"
+        rel_name="queue_rules",
+        list_index=0,
+        replacement_object_class="QueueConnectionRule",
+        replacement_object_id="crt-grenoble-sender-input-queue-rule"
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
@@ -145,6 +117,42 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
         list_index=0,
         replacement_object_class="DaqModulesGroupByType",
         replacement_object_id="crt-grenoble-frame-builder-data-source-step"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DetectorStream",
+        obj_id="stream_1007",
+        rel_name="geo_id",
+        replacement_object_class="GeoId",
+        replacement_object_id="g_13_1_1_0"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DetectorStream",
+        obj_id="stream_1008",
+        rel_name="geo_id",
+        replacement_object_class="GeoId",
+        replacement_object_id="g_13_1_1_1"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DetectorStream",
+        obj_id="stream_1009",
+        rel_name="geo_id",
+        replacement_object_class="GeoId",
+        replacement_object_id="g_13_2_1_0"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DetectorStream",
+        obj_id="stream_1010",
+        rel_name="geo_id",
+        replacement_object_class="GeoId",
+        replacement_object_id="g_13_2_1_1"
     )
 )
 

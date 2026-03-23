@@ -10,17 +10,13 @@
 
 #include "CRTGrenobleFrameBuilderModule.hpp"
 
-#include "CreateSource.hpp"
-
 #include "crtmodules/opmon/CRTGrenobleFrameBuilderModule.pb.h"
 
 #include "datahandlinglibs/utils/RateLimiter.hpp"
 
-#include "appmodel/DataReaderModule.hpp"
+#include "appmodel/DetectorFrameBuilderModule.hpp"
 #include "appmodel/SocketDetectorToDaqConnection.hpp"
 #include "appmodel/NWDetDataSender.hpp"
-
-#include "fddetdataformats/CRTGrenobleFrame.hpp"
 
 #include "confmodel/QueueWithSourceId.hpp"
 #include "confmodel/DetectorStream.hpp"
@@ -33,6 +29,8 @@
 #include <utility>
 #include <memory>
 #include <string>
+
+DUNE_DAQ_TYPESTRING(dunedaq::fddetdataformats::CRTGrenobleFrame, "CRTGrenobleFrame")
 
 namespace dunedaq::crtmodules {
 
@@ -120,21 +118,9 @@ CRTGrenobleFrameBuilderModule::CRTGrenobleFrameBuilderModule(const std::string& 
 void
 CRTGrenobleFrameBuilderModule::init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg)
 {
-  auto* mdal = mcfg->get_dal<appmodel::DataReaderModule>(get_name());
-  
-  if (mdal->get_raw_data_callbacks().empty()) {
-    auto err = dunedaq::datahandlinglibs::InitializationError(ERS_HERE,
-                                                              "No outputs defined for CRT Grenoble frame builder in configuration.");
-    ers::fatal(err);
-    throw err;
-  }
+  auto* mdal = mcfg->get_dal<appmodel::DetectorFrameBuilderModule>(get_name());
 
-  for (auto* con : mdal->get_raw_data_callbacks()) {
-    auto ptr = m_sources[con->get_source_id()] = createSourceModel(con);
-    register_node(con->UID(), ptr);
-  }
-
-  auto* d2d_conn = mdal->get_connections()[0]; // there's only 1 connection
+  auto* d2d_conn = mdal->get_connection();
   auto* socket_d2d_conn = d2d_conn->cast<appmodel::SocketDetectorToDaqConnection>();
   if (socket_d2d_conn == nullptr) {
     auto err = datahandlinglibs::InitializationError(ERS_HERE, "Connection is not of type SocketDetectorToDaqConnection.");
@@ -142,19 +128,28 @@ CRTGrenobleFrameBuilderModule::init(const std::shared_ptr<appfwk::ConfigurationM
     throw err;
   } 
 
-  for (auto nw_sender : socket_d2d_conn->get_net_senders()) {
-    if (nw_sender->is_disabled(*(mcfg->get_session()))) {
+  auto* nw_sender = socket_d2d_conn->get_net_senders()[0]; // there's only 1 sender
+
+  for (auto det_stream : nw_sender->get_streams()) {
+    if (det_stream->is_disabled(*(mcfg->get_session()))) {
       continue;
     }
 
-    for (auto det_stream : nw_sender->get_streams()) {
-      if (det_stream->is_disabled(*(mcfg->get_session()))) {
-        continue;
-      }
+    m_fake_stream_ids.push_back(det_stream->get_geo_id()->get_stream_id());
 
-      m_fake_stream_ids[det_stream->get_source_id()] = det_stream->get_geo_id()->get_stream_id();
-    }    
+    m_producer_threads.emplace_back(std::make_unique<utilities::ReusableThread>());
   }
+
+  auto* con = mdal->get_outputs()[0]; // there's only 1 output  
+  auto* queue = con->cast<confmodel::Queue>();
+  if (queue == nullptr) {
+    auto err = datahandlinglibs::InitializationError(ERS_HERE, "Output is not of type Queue.");
+    ers::fatal(err);
+    throw err;
+  }
+  
+  auto connection_name = queue->UID();
+  m_sender = get_iom_sender<fddetdataformats::CRTGrenobleFrame>(connection_name);
 }
 
 void
@@ -174,8 +169,10 @@ CRTGrenobleFrameBuilderModule::do_scrap(const CommandData_t& /*obj*/)
   if (m_run_marker.load()) {
     TLOG() << "Raising stop through variables!";
     set_running(false);
-    while (!m_producer_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    for (const auto& producer : m_producer_threads) {
+      while (!producer->get_readiness()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
     }
   } else {
     TLOG_DEBUG(5) << "Already stopped!";
@@ -185,18 +182,16 @@ CRTGrenobleFrameBuilderModule::do_scrap(const CommandData_t& /*obj*/)
 void
 CRTGrenobleFrameBuilderModule::do_start(const CommandData_t& /*startobj*/)
 {
-  // Setup callbacks on all sourcemodels
-  for (auto& [sourceid, source] : m_sources) {
-    source->acquire_callback();
-  }
-
   m_packet_count = 0;
 
   m_t0 = std::chrono::steady_clock::now();
 
   enable_flow();
 
-  m_producer_thread.set_work(&CRTGrenobleFrameBuilderModule::run_produce, this);
+  uint32_t i = 0;
+  for (auto& producer : m_producer_threads) {
+    producer->set_work(&CRTGrenobleFrameBuilderModule::run_produce, this, m_fake_stream_ids[i++]);
+  }
 }
 
 void
@@ -221,7 +216,7 @@ CRTGrenobleFrameBuilderModule::generate_opmon_data()
 }
 
 void
-CRTGrenobleFrameBuilderModule::run_produce()
+CRTGrenobleFrameBuilderModule::run_produce(uint32_t fake_stream_id)
 {
   TLOG() << "Producer thread started..."; // TODO (DTE): Debug log instead
 
@@ -232,17 +227,15 @@ CRTGrenobleFrameBuilderModule::run_produce()
   datahandlinglibs::RateLimiter rate_limiter(m_configured_packet_rate_khz);
 
   while (m_run_marker.load()) {
-    // Create a fake packet for each stream
-    for (const auto& [sid, source] : m_sources) {
-      fake_data(frame, seq_id, timestamp, m_fake_stream_ids[sid]); // TODO: To be filled by the CRT experts
-  
-      if (m_enable_flow.load()) [[likely]] {   
-        source->handle_payload(reinterpret_cast<char*>(&frame), sizeof(frame));
-        ++m_packet_count;
-      }
+    // Create a fake packet for stream
+    fake_data(frame, seq_id, timestamp, fake_stream_id); // TODO: To be filled by the CRT experts
 
-      rate_limiter.limit();    
+    if (m_enable_flow.load()) [[likely]] {   
+      m_sender->try_send(std::move(frame), iomanager::Sender::s_no_block);        
+      ++m_packet_count;
     }
+
+    rate_limiter.limit();    
   }
 
   TLOG() << "Producer thread joins... "; // TODO (DTE): Debug log instead
