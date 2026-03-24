@@ -1,5 +1,5 @@
 /**
- * @file CRTBernReaderModule.hpp
+ * @file CRTBernFrameBuilderModule.hpp
  *
  * Reads data from the HW then puts it in a queue
  *
@@ -8,39 +8,39 @@
  * received with this code.
  */
 
-#ifndef CRTMODULES_PLUGINS_CRTBERNREADERMODULE_HPP_
-#define CRTMODULES_PLUGINS_CRTBERNREADERMODULE_HPP_
+#ifndef CRTMODULES_PLUGINS_CRTBERNFRAMEBUILDERMODULE_HPP_
+#define CRTMODULES_PLUGINS_CRTBERNFRAMEBUILDERMODULE_HPP_
 
 #include "appfwk/DAQModule.hpp"
 #include "utilities/ReusableThread.hpp"
+#include "fddetdataformats/CRTBernFrame.hpp"
 
 #include <memory>
 #include <map>
+#include <string>
+#include <vector>
 
-namespace dunedaq {
-namespace crtmodules {
+namespace dunedaq::crtmodules {
 
-class SourceConcept;
-
-class CRTBernReaderModule : public dunedaq::appfwk::DAQModule
+class CRTBernFrameBuilderModule : public dunedaq::appfwk::DAQModule
 {
 public:
   /**
-   * @brief CRTBernReaderModule constructor
+   * @brief CRTBernFrameBuilderModule constructor
    * @param name DAQ module instance name
    */
-  explicit CRTBernReaderModule(const std::string& name);
+  explicit CRTBernFrameBuilderModule(const std::string& name);
 
-  CRTBernReaderModule(const CRTBernReaderModule&) = delete;            ///< CRTBernReaderModule is not copy-constructible
-  CRTBernReaderModule& operator=(const CRTBernReaderModule&) = delete; ///< CRTBernReaderModule is not copy-assignable
-  CRTBernReaderModule(CRTBernReaderModule&&) = delete;                 ///< CRTBernReaderModule is not move-constructible
-  CRTBernReaderModule& operator=(CRTBernReaderModule&&) = delete;      ///< CRTBernReaderModule is not move-assignable
+  CRTBernFrameBuilderModule(const CRTBernFrameBuilderModule&) = delete;            ///< CRTBernFrameBuilderModule is not copy-constructible
+  CRTBernFrameBuilderModule& operator=(const CRTBernFrameBuilderModule&) = delete; ///< CRTBernFrameBuilderModule is not copy-assignable
+  CRTBernFrameBuilderModule(CRTBernFrameBuilderModule&&) = delete;                 ///< CRTBernFrameBuilderModule is not move-constructible
+  CRTBernFrameBuilderModule& operator=(CRTBernFrameBuilderModule&&) = delete;      ///< CRTBernFrameBuilderModule is not move-assignable
 
   /**
    * @brief Handles initialization on boot
    * @param mcfg DAQ configuration data
    */    
-  void init(const std::shared_ptr<appfwk::ConfigurationManager> mfcg) override;
+  void init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg) override;
 
 private:
   // Commands
@@ -52,16 +52,10 @@ private:
   void generate_opmon_data() override;
 
   /**
-   * @brief Raw data produce thread function
+   * @brief Data produce thread function
+   * @param fake_stream_id Fake packet stream ID
    */     
-  void run_produce();
-
-  /**
-   * @brief Forwards the payload to get processed
-   * @param payload Payload buffer
-   * @param size Payload size
-   */    
-  void handle_eth_payload(char* payload, std::size_t size);
+  void run_produce(uint32_t fake_stream_id); // NOLINT(build/unsigned)
 
   /**
    * @brief Sets run marker
@@ -91,17 +85,19 @@ private:
 
   // PRODUCER
   /**
-   * @brief Raw data producer thread
+   * @brief Data producer threads
    */       
-  utilities::ReusableThread m_producer_thread;  
+  std::vector<std::unique_ptr<utilities::ReusableThread>> m_producer_threads;  
 
-  // Sinks (SourceConcepts)
   /**
-   * @brief Data sources
+   * @brief Data sender
    */
-  using sid_to_source_map_t = std::map<int, std::shared_ptr<SourceConcept>>;
-  sid_to_source_map_t m_sources;
-  uint32_t m_source_id; // NOLINT(build/unsigned)
+  std::shared_ptr<iomanager::SenderConcept<fddetdataformats::CRTBernFrame>> m_sender;
+
+  /**
+   * @brief Fake packet stream IDs
+   */  
+  std::vector<uint32_t> m_fake_stream_ids; // NOLINT(build/unsigned)
 
   /**
    * @brief Configured packet transmission rate in kHz
@@ -117,9 +113,8 @@ private:
   /**
    * @brief Timestamp used to measure time between opmon reports
    */   
-  std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;      
+  std::chrono::time_point<std::chrono::steady_clock> m_t0;      
 };
-} // namespace crtmodules
-} // namespace dunedaq
+} // namespace dunedaq::crtmodules
 
-#endif // CRTMODULES_PLUGINS_CRTBERNREADERMODULE_HPP_
+#endif // CRTMODULES_PLUGINS_CRTBERNFRAMEBUILDERMODULE_HPP_

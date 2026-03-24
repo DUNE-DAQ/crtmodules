@@ -2,6 +2,6 @@ syntax = "proto3";
 
 package dunedaq.crtmodules.opmon;
 
-message CRTGrenobleReaderInfo {
+message CRTBernFrameBuilderInfo {
   double packet_rate_khz = 1; // Measured packet transmission rate in kHz
 }

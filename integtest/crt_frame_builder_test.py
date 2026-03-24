@@ -10,8 +10,8 @@ import integrationtest.data_classes as data_classes
 pytest_plugins = "integrationtest.integrationtest_drunc"
 
 # Values that help determine the running conditions
-number_of_data_producers = 1
-number_of_readout_apps = 1
+number_of_data_producers = 4
+number_of_builder_apps = 2
 run_duration = 20  # seconds
 
 # Default values for validation parameters
@@ -26,7 +26,7 @@ ignored_logfile_problems = {
 
 common_config_obj = data_classes.drunc_config()
 common_config_obj.dro_map_config.n_streams = number_of_data_producers
-common_config_obj.dro_map_config.n_apps = number_of_readout_apps
+common_config_obj.dro_map_config.n_apps = number_of_builder_apps
 # 22-Jan-2026, KAB: added the use of the DAQSYSTEMTEST_SHARE env var as part of
 # specifying the location of the example-configs.data.xml file.  This is more
 # reliable than using a relative path to a parallel directory with the daqsystemtest
@@ -40,62 +40,63 @@ common_config_obj.config_db = (
 onebyone_local_crt_bern_conf = copy.deepcopy(common_config_obj)
 onebyone_local_crt_bern_conf.session = "local-socket-1x1-config"
 
-new_port = find_free_port()
+new_local_port = find_free_port()
+new_remote_port = find_free_port()
 onebyone_local_crt_bern_conf.config_substitutions.append(
     data_classes.attribute_substitution(
         obj_class="SocketDataSender",
         obj_id="socket_sender_crt",
-        updates={"port": new_port},
+        updates={"local_port": new_local_port, "remote_port": new_remote_port},
     )
 )
+new_local_port = find_free_port()
+new_remote_port = find_free_port()
 onebyone_local_crt_bern_conf.config_substitutions.append(
-    data_classes.relationship_substitution(
-        obj_class="CRTReaderApplication",
-        obj_id="crt-data-source-01",
-        rel_name="data_reader",
-        replacement_object_class="CRTBernReaderConf",
-        replacement_object_id="def-crt-bern-receiver-conf"
-    )
-)
-onebyone_local_crt_bern_conf.config_substitutions.append(
-    data_classes.list_element_substitution(
-        obj_class="ActionPlan",
-        obj_id="crt-readout-start",
-        rel_name="steps",
-        list_index=1,
-        replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-bern-reader-data-source-step"
-    )
-)
-onebyone_local_crt_bern_conf.config_substitutions.append(
-    data_classes.list_element_substitution(
-        obj_class="ActionPlan",
-        obj_id="crt-readout-stop",
-        rel_name="steps",
-        list_index=0,
-        replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-bern-reader-data-source-step"
+    data_classes.attribute_substitution(
+        obj_class="SocketDataSender",
+        obj_id="socket_sender_crt_2",
+        updates={"local_port": new_local_port, "remote_port": new_remote_port},
     )
 )
 
 onebyone_local_crt_grenoble_conf = copy.deepcopy(common_config_obj)
 onebyone_local_crt_grenoble_conf.session = "local-socket-1x1-config"
 
-new_port = find_free_port()
+new_local_port = find_free_port()
+new_remote_port = find_free_port()
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
     data_classes.attribute_substitution(
         obj_class="SocketDataSender",
         obj_id="socket_sender_crt",
-        updates={"port": new_port},
+        updates={"local_port": new_local_port, "remote_port": new_remote_port},
+    )
+)
+new_local_port = find_free_port()
+new_remote_port = find_free_port()
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.attribute_substitution(
+        obj_class="SocketDataSender",
+        obj_id="socket_sender_crt_2",
+        updates={"local_port": new_local_port, "remote_port": new_remote_port},
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
     data_classes.relationship_substitution(
-        obj_class="CRTReaderApplication",
+        obj_class="CRTFrameBuilderApplication",
         obj_id="crt-data-source-01",
-        rel_name="data_reader",
-        replacement_object_class="CRTGrenobleReaderConf",
-        replacement_object_id="def-crt-grenoble-receiver-conf"
+        rel_name="detector_frame_builder",
+        replacement_object_class="CRTGrenobleFrameBuilderConf",
+        replacement_object_id="def-crt-grenoble-frame-builder-conf"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.list_element_substitution(
+        obj_class="CRTFrameBuilderApplication",
+        obj_id="crt-data-source-01",
+        rel_name="queue_rules",
+        list_index=0,
+        replacement_object_class="QueueConnectionRule",
+        replacement_object_id="crt-grenoble-sender-input-queue-rule"
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
@@ -105,7 +106,7 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
         rel_name="steps",
         list_index=1,
         replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-grenoble-reader-data-source-step"
+        replacement_object_id="crt-grenoble-frame-builder-data-source-step"
     )
 )
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
@@ -115,30 +116,46 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
         rel_name="steps",
         list_index=0,
         replacement_object_class="DaqModulesGroupByType",
-        replacement_object_id="crt-grenoble-reader-data-source-step"
+        replacement_object_id="crt-grenoble-frame-builder-data-source-step"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DetectorStream",
+        obj_id="stream_1007",
+        rel_name="geo_id",
+        replacement_object_class="GeoId",
+        replacement_object_id="g_13_1_1_0"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DetectorStream",
+        obj_id="stream_1008",
+        rel_name="geo_id",
+        replacement_object_class="GeoId",
+        replacement_object_id="g_13_1_1_1"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DetectorStream",
+        obj_id="stream_1009",
+        rel_name="geo_id",
+        replacement_object_class="GeoId",
+        replacement_object_id="g_13_2_1_0"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DetectorStream",
+        obj_id="stream_1010",
+        rel_name="geo_id",
+        replacement_object_class="GeoId",
+        replacement_object_id="g_13_2_1_1"
     )
 )
 
-onebyone_local_crt_grenoble_conf.config_substitutions.append(
-    data_classes.list_element_substitution(
-        obj_class="CRTReaderApplication",
-        obj_id="crt-data-source-01",
-        rel_name="queue_rules",
-        list_index=0,
-        replacement_object_class="QueueConnectionRule",
-        replacement_object_id="crt-grenoble-raw-data-rule"
-    )
-)
-onebyone_local_crt_grenoble_conf.config_substitutions.append(
-    data_classes.list_element_substitution(
-        obj_class="ReadoutApplication",
-        obj_id="socket-ru-01",
-        rel_name="queue_rules",
-        list_index=1,
-        replacement_object_class="QueueConnectionRule",
-        replacement_object_id="crt-grenoble-callback-raw-data-rule"
-    )
-)
 onebyone_local_crt_grenoble_conf.config_substitutions.append(
     data_classes.relationship_substitution(
         obj_class="ReadoutApplication",
@@ -146,6 +163,15 @@ onebyone_local_crt_grenoble_conf.config_substitutions.append(
         rel_name="link_handler",
         replacement_object_class="DataHandlerConf",
         replacement_object_id="def-crt-grenoble-link-handler"
+    )
+)
+onebyone_local_crt_grenoble_conf.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="ReadoutApplication",
+        obj_id="socket-ru-01",
+        rel_name="callback_desc",
+        replacement_object_class="DataMoveCallbackDescriptor",
+        replacement_object_id="crt-grenoble-raw-input"
     )
 )
 

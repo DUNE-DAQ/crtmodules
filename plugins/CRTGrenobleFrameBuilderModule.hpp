@@ -1,5 +1,5 @@
 /**
- * @file CRTGrenobleReaderModule.hpp
+ * @file CRTGrenobleFrameBuilderModule.hpp
  *
  * Reads data from the HW then puts it in a queue
  *
@@ -8,39 +8,39 @@
  * received with this code.
  */
 
-#ifndef CRTMODULES_PLUGINS_CRTGRENOBLEREADERMODULE_HPP_
-#define CRTMODULES_PLUGINS_CRTGRENOBLEREADERMODULE_HPP_
+#ifndef CRTMODULES_PLUGINS_CRTGRENOBLEFRAMEBUILDERMODULE_HPP_
+#define CRTMODULES_PLUGINS_CRTGRENOBLEFRAMEBUILDERMODULE_HPP_
 
 #include "appfwk/DAQModule.hpp"
 #include "utilities/ReusableThread.hpp"
+#include "fddetdataformats/CRTGrenobleFrame.hpp"
 
 #include <memory>
 #include <map>
+#include <string>
+#include <vector>
 
-namespace dunedaq {
-namespace crtmodules {
+namespace dunedaq::crtmodules {
 
-class SourceConcept;
-
-class CRTGrenobleReaderModule : public dunedaq::appfwk::DAQModule
+class CRTGrenobleFrameBuilderModule : public dunedaq::appfwk::DAQModule
 {
 public:
   /**
-   * @brief CRTGrenobleReaderModule constructor
+   * @brief CRTGrenobleFrameBuilderModule constructor
    * @param name DAQ module instance name
    */
-  explicit CRTGrenobleReaderModule(const std::string& name);
+  explicit CRTGrenobleFrameBuilderModule(const std::string& name);
 
-  CRTGrenobleReaderModule(const CRTGrenobleReaderModule&) = delete;            ///< CRTGrenobleReaderModule is not copy-constructible
-  CRTGrenobleReaderModule& operator=(const CRTGrenobleReaderModule&) = delete; ///< CRTGrenobleReaderModule is not copy-assignable
-  CRTGrenobleReaderModule(CRTGrenobleReaderModule&&) = delete;                 ///< CRTGrenobleReaderModule is not move-constructible
-  CRTGrenobleReaderModule& operator=(CRTGrenobleReaderModule&&) = delete;      ///< CRTGrenobleReaderModule is not move-assignable
+  CRTGrenobleFrameBuilderModule(const CRTGrenobleFrameBuilderModule&) = delete;            ///< CRTGrenobleFrameBuilderModule is not copy-constructible
+  CRTGrenobleFrameBuilderModule& operator=(const CRTGrenobleFrameBuilderModule&) = delete; ///< CRTGrenobleFrameBuilderModule is not copy-assignable
+  CRTGrenobleFrameBuilderModule(CRTGrenobleFrameBuilderModule&&) = delete;                 ///< CRTGrenobleFrameBuilderModule is not move-constructible
+  CRTGrenobleFrameBuilderModule& operator=(CRTGrenobleFrameBuilderModule&&) = delete;      ///< CRTGrenobleFrameBuilderModule is not move-assignable
 
   /**
    * @brief Handles initialization on boot
    * @param mcfg DAQ configuration data
    */  
-  void init(const std::shared_ptr<appfwk::ConfigurationManager> mfcg) override;
+  void init(const std::shared_ptr<appfwk::ConfigurationManager> mcfg) override;
 
 private:
   // Commands
@@ -52,16 +52,10 @@ private:
   void generate_opmon_data() override;
 
   /**
-   * @brief Raw data produce thread function
+   * @brief Data produce thread function
+   * @param fake_stream_id Fake packet stream ID
    */     
-  void run_produce();
-
-  /**
-   * @brief Forwards the payload to get processed
-   * @param payload Payload buffer
-   * @param size Payload size
-   */  
-  void handle_eth_payload(char* payload, std::size_t size);
+  void run_produce(uint32_t fake_stream_id); // NOLINT(build/unsigned)
 
   /**
    * @brief Sets run marker
@@ -91,17 +85,19 @@ private:
 
   // PRODUCER
   /**
-   * @brief Raw data producer thread
+   * @brief Data producer threads
    */       
-  utilities::ReusableThread m_producer_thread;  
+  std::vector<std::unique_ptr<utilities::ReusableThread>> m_producer_threads;  
 
-  // Sinks (SourceConcepts)
   /**
-   * @brief Data sources
+   * @brief Data sender
    */
-  using sid_to_source_map_t = std::map<int, std::shared_ptr<SourceConcept>>;
-  sid_to_source_map_t m_sources;
-  uint32_t m_source_id; // NOLINT(build/unsigned)
+  std::shared_ptr<iomanager::SenderConcept<fddetdataformats::CRTGrenobleFrame>> m_sender;
+
+  /**
+   * @brief Fake packet stream IDs
+   */  
+  std::vector<uint32_t> m_fake_stream_ids; // NOLINT(build/unsigned)
 
   /**
    * @brief Configured packet transmission rate in kHz
@@ -119,7 +115,6 @@ private:
    */   
   std::chrono::time_point<std::chrono::steady_clock> m_t0;      
 };
-} // namespace crtmodules
-} // namespace dunedaq
+} // namespace dunedaq::crtmodules
 
-#endif // CRTMODULES_PLUGINS_CRTGRENOBLEREADERMODULE_HPP_
+#endif // CRTMODULES_PLUGINS_CRTGRENOBLEFRAMEBUILDERMODULE_HPP_
