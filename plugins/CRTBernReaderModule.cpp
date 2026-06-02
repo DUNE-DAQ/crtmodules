@@ -91,15 +91,13 @@ fake_adc(fddetdataformats::CRTBernFrame& frame)
 void
 fake_data(fddetdataformats::CRTBernFrame& frame, uint64_t& seq_id, uint64_t& timestamp)
 {
-  frame.daq_header.det_id = fake_det_id & 0x3f; //6 bits for det id
-  frame.daq_header.crate_id = 1;
-  frame.daq_header.slot_id = 1;
-  frame.daq_header.stream_id = fake_stream_id;
+  frame.set_geoid(1, 1, fake_stream_id); // crate, slot, stream
+  frame.get_daqheader().det_id = fake_det_id & 0x3f; //6 bits for det id
   fake_sequence_id(seq_id);
-  frame.daq_header.seq_id = seq_id;
-  frame.daq_header.block_length = fake_block_length;
+  frame.get_daqheader().seq_id = seq_id;
+  frame.get_daqheader().block_length = fake_block_length;
   fake_timestamp(timestamp);
-  frame.daq_header.timestamp = timestamp;
+  frame.set_timestamp(timestamp);
   fake_adc(frame);
 }
 
