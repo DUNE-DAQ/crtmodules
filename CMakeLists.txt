@@ -8,7 +8,7 @@
 # https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/
 
 cmake_minimum_required(VERSION 3.12)
-project(crtmodules VERSION 2.1.3)
+project(crtmodules VERSION 2.1.4)
 
 find_package(daq-cmake REQUIRED)
 
@@ -57,8 +57,8 @@ daq_add_python_bindings(*.cpp )
 # See https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-cmake/#daq_add_plugin
 
 #daq_add_plugin(CRTControllerModule duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk) # Replace appfwk library with a more specific library when appropriate
-daq_add_plugin(CRTGrenobleReaderModule duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk fdreadoutlibs::fdreadoutlibs opmonlib::opmonlib)
-daq_add_plugin(CRTBernReaderModule duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk fdreadoutlibs::fdreadoutlibs opmonlib::opmonlib)
+daq_add_plugin(CRTGrenobleFrameBuilderModule duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk fdreadoutlibs::fdreadoutlibs opmonlib::opmonlib)
+daq_add_plugin(CRTBernFrameBuilderModule duneDAQModule LINK_LIBRARIES crtmodules appfwk::appfwk fdreadoutlibs::fdreadoutlibs opmonlib::opmonlib)
 
 ##############################################################################
 
