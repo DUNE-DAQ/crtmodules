@@ -130,7 +130,7 @@ CRTBernFrameBuilderModule::init(const std::shared_ptr<appfwk::ConfigurationManag
   auto* nw_sender = socket_d2d_conn->get_net_senders()[0]; // there's only 1 sender
 
   for (auto det_stream : nw_sender->get_streams()) {
-    if (det_stream->is_disabled(*(mcfg->get_session()))) {
+    if (det_stream->is_excluded(*(mcfg->get_session()))) {
       continue;
     }
 
