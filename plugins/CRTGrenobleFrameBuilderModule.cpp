@@ -15,20 +15,20 @@
 #include "datahandlinglibs/utils/RateLimiter.hpp"
 
 #include "appmodel/DetectorFrameBuilderModule.hpp"
-#include "appmodel/SocketDetectorToDaqConnection.hpp"
 #include "appmodel/NWDetDataSender.hpp"
+#include "appmodel/SocketDetectorToDaqConnection.hpp"
 
-#include "confmodel/QueueWithSourceId.hpp"
 #include "confmodel/DetectorStream.hpp"
 #include "confmodel/GeoId.hpp"
+#include "confmodel/QueueWithSourceId.hpp"
 
 #include "datahandlinglibs/DataHandlingIssues.hpp"
 
 #include "detdataformats/DetID.hpp"
 
-#include <utility>
 #include <memory>
 #include <string>
+#include <utility>
 
 DUNE_DAQ_TYPESTRING(dunedaq::fddetdataformats::CRTGrenobleFrame, "CRTGrenobleFrame")
 
@@ -42,7 +42,8 @@ constexpr uint64_t max_seq_id = 4095; // NOLINT(build/unsigned)
 /**
  * @brief Fake packet detector ID
  */
-constexpr uint8_t fake_det_id = static_cast<uint8_t>(detdataformats::DetID::Subdetector::kVD_GrenobleCRT); // NOLINT(build/unsigned)
+constexpr uint8_t fake_det_id =
+  static_cast<uint8_t>(detdataformats::DetID::Subdetector::kVD_GrenobleCRT); // NOLINT(build/unsigned)
 
 /**
  * @brief Fake packet block length
@@ -56,7 +57,7 @@ constexpr uint64_t fake_block_length = 0x382; // NOLINT(build/unsigned)
 void
 fake_sequence_id(uint64_t& seq_id) // NOLINT(build/unsigned)
 {
-  seq_id = (seq_id == max_seq_id ? 0 : seq_id+1);
+  seq_id = (seq_id == max_seq_id ? 0 : seq_id + 1);
 }
 
 /**
@@ -66,10 +67,10 @@ fake_sequence_id(uint64_t& seq_id) // NOLINT(build/unsigned)
 void
 fake_timestamp(uint64_t& timestamp) // NOLINT(build/unsigned)
 {
-    auto time_now = std::chrono::steady_clock::now().time_since_epoch();
-    uint64_t current_time = // NOLINT (build/unsigned)
+  auto time_now = std::chrono::steady_clock::now().time_since_epoch();
+  uint64_t current_time = // NOLINT (build/unsigned)
     std::chrono::duration_cast<std::chrono::nanoseconds>(time_now).count();
-    timestamp = current_time / 16; // 625/10000 (same as 625*us/10)
+  timestamp = current_time / 16; // 625/10000 (same as 625*us/10)
 }
 
 /**
@@ -92,9 +93,12 @@ fake_adc(fddetdataformats::CRTGrenobleFrame& frame)
  * @param stream_id Fake packet stream ID
  */
 void
-fake_data(fddetdataformats::CRTGrenobleFrame& frame, uint64_t& seq_id, uint64_t& timestamp, uint32_t stream_id) // NOLINT(build/unsigned)
+fake_data(fddetdataformats::CRTGrenobleFrame& frame,
+          uint64_t& seq_id,
+          uint64_t& timestamp,
+          uint32_t stream_id) // NOLINT(build/unsigned)
 {
-  frame.daq_header.det_id = fake_det_id & 0x3f; //6 bits for det id
+  frame.daq_header.det_id = fake_det_id & 0x3f; // 6 bits for det id
   frame.daq_header.crate_id = 1;
   frame.daq_header.slot_id = 1;
   frame.daq_header.stream_id = stream_id;
@@ -123,10 +127,11 @@ CRTGrenobleFrameBuilderModule::init(const std::shared_ptr<appfwk::ConfigurationM
   auto* d2d_conn = mdal->get_connection();
   auto* socket_d2d_conn = d2d_conn->cast<appmodel::SocketDetectorToDaqConnection>();
   if (socket_d2d_conn == nullptr) {
-    auto err = datahandlinglibs::InitializationError(ERS_HERE, "Connection is not of type SocketDetectorToDaqConnection.");
+    auto err =
+      datahandlinglibs::InitializationError(ERS_HERE, "Connection is not of type SocketDetectorToDaqConnection.");
     ers::fatal(err);
     throw err;
-  } 
+  }
 
   auto* nw_sender = socket_d2d_conn->get_net_senders()[0]; // there's only 1 sender
 
@@ -140,14 +145,14 @@ CRTGrenobleFrameBuilderModule::init(const std::shared_ptr<appfwk::ConfigurationM
     m_producer_threads.emplace_back(std::make_unique<utilities::ReusableThread>());
   }
 
-  auto* con = mdal->get_outputs()[0]; // there's only 1 output  
+  auto* con = mdal->get_outputs()[0]; // there's only 1 output
   auto* queue = con->cast<confmodel::Queue>();
   if (queue == nullptr) {
     auto err = datahandlinglibs::InitializationError(ERS_HERE, "Output is not of type Queue.");
     ers::fatal(err);
     throw err;
   }
-  
+
   auto connection_name = queue->UID();
   m_sender = get_iom_sender<fddetdataformats::CRTGrenobleFrame>(connection_name);
 }
@@ -221,7 +226,7 @@ CRTGrenobleFrameBuilderModule::run_produce(uint32_t fake_stream_id) // NOLINT(bu
   TLOG() << "Producer thread started..."; // TODO (DTE): Debug log instead
 
   fddetdataformats::CRTGrenobleFrame frame;
-  uint64_t seq_id = 0; // NOLINT(build/unsigned)
+  uint64_t seq_id = 0;    // NOLINT(build/unsigned)
   uint64_t timestamp = 0; // NOLINT(build/unsigned)
 
   datahandlinglibs::RateLimiter rate_limiter(m_configured_packet_rate_khz);
@@ -230,18 +235,18 @@ CRTGrenobleFrameBuilderModule::run_produce(uint32_t fake_stream_id) // NOLINT(bu
     // Create a fake packet for stream
     fake_data(frame, seq_id, timestamp, fake_stream_id); // TODO: To be filled by the CRT experts
 
-    if (m_enable_flow.load()) [[likely]] {   
-      m_sender->try_send(std::move(frame), iomanager::Sender::s_no_block);        
+    if (m_enable_flow.load()) [[likely]] {
+      m_sender->try_send(std::move(frame), iomanager::Sender::s_no_block);
       ++m_packet_count;
     }
 
-    rate_limiter.limit();    
+    rate_limiter.limit();
   }
 
   TLOG() << "Producer thread joins... "; // TODO (DTE): Debug log instead
 }
 
-void 
+void
 CRTGrenobleFrameBuilderModule::set_running(bool should_run)
 {
   bool was_running = m_run_marker.exchange(should_run);
